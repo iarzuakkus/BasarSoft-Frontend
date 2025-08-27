@@ -1,0 +1,22 @@
+.row{ display:grid; gap:8px; margin:12px 0; }
+.row label{ font-weight:800; font-size:14px; color:#374151; }
+
+.row input,
+.row textarea{
+  height:42px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #dbe6f0;
+  outline:none;
+  background:#fff;
+  color:#111;
+  transition: box-shadow .12s, border-color .12s;
+}
+.row textarea{ min-height:96px; resize: vertical; }
+.row input::placeholder,
+.row textarea::placeholder{ color:#9aa3ad; font-weight:600; letter-spacing:.2px; }
+.row input:focus,
+.row textarea:focus{
+  border-color:#60a5fa;
+  box-shadow:0 0 0 4px var(--ring);
+}

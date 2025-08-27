@@ -1,0 +1,163 @@
+/* --- palette --- */
+:root{
+  --grid-bg: #f5fbff;
+  --grid-line: #a6d9f3;
+  --orange: #ff8f4e;
+  --orange-2: #ffb587;
+  --cyan: #67c8e3;
+  --cyan-2:#9be0f0;
+  --text: #2b2f36;
+  --muted:#6b7280;
+  --card:#ffffff;
+  --ring:#bfe9ff;
+}
+
+/* global resets */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, #root {
+  height: 100%;
+  width: 100%;                 /* <-- full width */
+  margin: 0;
+  font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: var(--grid-bg);  /* <-- base bg so right side never looks dark */
+  overflow-x: hidden;          /* <-- prevent accidental horizontal scroll */
+}
+
+/* page container (full viewport) */
+.sheet{
+  min-height: 100dvh;          /* <-- full viewport height (handles mobile UI) */
+  width: 100%;
+  padding: 18px;
+  color-scheme: light;         /* prevents dark UA styles on inputs */
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 23px, var(--grid-line) 24px),
+    repeating-linear-gradient(90deg, transparent, transparent 23px, var(--grid-line) 24px),
+    var(--grid-bg);
+}
+
+/* toolbar */
+.toolbar{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  margin:10px 10px 18px 10px;
+}
+
+/* pill buttons */
+.pill{
+  height:40px;
+  padding:0 18px;
+  border-radius:999px;
+  border:3px solid var(--orange);
+  background:#fff;
+  color:#444;
+  font-weight:600;
+  display:inline-flex; align-items:center; gap:10px;
+  cursor:pointer;
+  box-shadow:0 2px 0 rgba(0,0,0,.06);
+  user-select:none;
+  transition: transform .08s, box-shadow .12s, border-color .12s;
+}
+.pill:hover{ transform: translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.07); }
+.pill:active{ transform: translateY(0); }
+.pill:focus-visible{ outline: 0; box-shadow: 0 0 0 4px var(--ring); }
+.pill-orange{ border-color: var(--orange); }
+.pill-cyan{ border-color: var(--cyan); }
+
+/* select pill */
+.select{ position:relative; padding-right:12px; }
+.select .select-label{ color:#888; font-weight:500; }
+.select .chev{
+  width:26px; height:26px; border-radius:999px;
+  background: var(--cyan);
+  color:white; display:grid; place-items:center;
+  font-size:14px;
+}
+
+/* dropdown */
+.menu{
+  position:absolute; top:44px; left:0;
+  background:var(--card);
+  border:1px solid #e5eef5;
+  border-radius:12px;
+  min-width:180px;
+  box-shadow:0 12px 30px rgba(0,0,0,.08);
+  overflow:hidden;
+  z-index:30;
+}
+.menu-item{ padding:10px 14px; cursor:pointer; font-weight:600; color:#445; }
+.menu-item:hover{ background:#f1fbff; }
+.menu-item.active{ background:#e6f7ff; color:#1d4ed8; }
+
+/* work area */
+.work{ margin: 8px 10px 24px 10px; padding:0; }
+.work-inner{
+  border:6px solid var(--cyan);
+  border-radius:6px;
+  background:#f7feff;
+  min-height:340px;
+  display:grid; place-items:center;
+}
+.placeholder{ color: var(--muted); font-weight:600; opacity:.8; }
+
+/* modal */
+.modal-backdrop{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.35); /* lighter overlay */
+  display:grid; place-items:center; z-index:50;
+}
+.modal{
+  width: 95%; max-width: 460px;
+  background:#fff; border-radius:16px; padding:18px 18px 14px;
+  border:1px solid #eaf3f8; box-shadow:0 18px 60px rgba(0,0,0,.15);
+}
+.modal h3{ margin:0 0 10px; font-size:18px; }
+.row{ display:grid; gap:8px; margin:10px 0; }
+.row label{ font-weight:600; font-size:14px; color:#374151; }
+
+/* inputs — always light */
+.row input,
+.row textarea{
+  height:42px;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #dbe6f0;
+  outline:none;
+  background:#fff;   /* force light */
+  color:#111;        /* force dark text */
+}
+.row textarea{ min-height:96px; resize: vertical; }
+.row input::placeholder,
+.row textarea::placeholder{ color:#9aa3ad; }
+.row input:focus,
+.row textarea:focus{
+  border-color:#60a5fa;
+  box-shadow:0 0 0 4px var(--ring);
+}
+
+.actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+.btn{
+  height:40px; min-width:96px; border-radius:10px; border:0; cursor:pointer;
+  font-weight:700;
+}
+.btn.ghost{ background:#f2f6fb; color:#374151; }
+.btn.primary{ background:#2563eb; color:#fff; }
+.btn:focus-visible{ outline:0; box-shadow:0 0 0 4px var(--ring); }
+
+.hint{ margin:6px 2px 0; color:#6b7280; font-size:12px; }
+
+/* work area içeriği */
+.work-inner{
+  /* mevcut stillerin aynı kalsın; sadece şu ikisini ekle */
+  padding: 16px;
+  overflow: auto;
+}
+.work-log{
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  color: #475569;
+  text-align: left;
+}

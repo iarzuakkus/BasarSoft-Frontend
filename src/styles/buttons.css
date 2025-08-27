@@ -1,0 +1,163 @@
+/* ---------- Strong resets for controls ---------- */
+button, select {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  border: none;
+}
+
+/* ---------- PILL buttons (Toolbar) ---------- */
+.pill,
+button.pill {
+  height: 48px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 3px solid var(--orange);
+  background: #fff;
+  color: #2f3440;
+  font-weight: 800;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(0,0,0,.05);
+  user-select: none;
+  transition: transform .08s, box-shadow .12s, border-color .12s, background .12s;
+  text-transform: capitalize;
+}
+.pill:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.12); }
+.pill:active { transform: translateY(0); }
+.pill:focus-visible { outline: 0; box-shadow: 0 0 0 4px var(--ring); }
+.pill-orange { border-color: var(--orange); }
+
+/* ---------- Native select that looks like a pill ---------- */
+.select-native-wrap { position: relative; display: inline-block; }
+.select-native {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  height: 48px;
+  padding: 0 50px 0 22px; /* right arrow space */
+  border-radius: 999px;
+  border: 3px solid var(--orange);
+  background: #fff;
+  color: #2f3440;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(0,0,0,.05);
+}
+.select-native:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.12); }
+.select-native:focus { outline: none; box-shadow: 0 0 0 4px var(--ring); }
+
+.select-native-wrap::after {
+  content: "▾";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--cyan);
+  color: #fff;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  pointer-events: none; /* click passes to select */
+}
+
+/* ---------- Primary/Ghost buttons (Modal actions) ---------- */
+button.btn,
+.btn {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 46px;
+  min-width: 128px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 46px;
+  transition: transform .06s, box-shadow .12s, background .12s;
+}
+
+.btn.primary {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37,99,235,.25);
+}
+.btn.primary:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(37,99,235,.28); }
+.btn.primary:active { transform: translateY(0); }
+
+.btn.ghost {
+  background: #f2f6fb;
+  color: #374151;
+}
+.btn:focus-visible { outline: 0; box-shadow: 0 0 0 4px var(--ring); }
+
+/* ---------- Actions row spacing ---------- */
+.actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 12px; }
+
+/* ===== Themed Dropdown (pill style) ===== */
+.dp-wrap { position: relative; display: inline-block; }
+.dp-trigger { padding-right: 44px; }  /* room for the cyan arrow */
+
+/* SVG chevron baloncuk stili */
+.dp-trigger .chev-icon {
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: var(--cyan);
+  color: #fff;               /* SVG stroke = currentColor */
+  display: grid;
+  place-items: center;
+  transition: transform .2s ease;
+}
+
+/* açıkken oku ters çevir */
+.dp-trigger .chev-icon.open {
+  transform: rotate(180deg);
+}
+
+/* popup menu */
+.dp-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #e5eef5;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.15);
+  z-index: 10000;
+  overflow: hidden;
+}
+.dp-item {
+  padding: 12px 14px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #374151;
+  user-select: none;
+}
+.dp-item:hover { background:#f1fbff; }
+.dp-item.is-active { background:#e6f7ff; }
+.dp-item.is-selected::after {
+  content:"•";
+  float:right;
+  color:#1d4ed8;
+  font-weight:900;
+}

@@ -1,0 +1,45 @@
+/* === Map Viewport: çerçeve burada, butonlar dışarıda === */
+.map-viewport{
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 6px solid var(--cyan);   /* çerçeve */
+  border-radius: 12px;
+  overflow: hidden;                 /* harita içini keser, dış buton etkilenmez */
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,.06);
+  background: #eaf4ff;
+}
+
+/* OpenLayers slot */
+.ol-map-slot{ position: absolute; inset: 0; }
+
+/* === Floating Action Buttons (FABs) === */
+.map-fab{
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  height: 52px;
+  min-width: 150px;
+  border-radius: 999px;
+  border: 3px solid var(--cyan);
+  background: #fff;
+  color: #374151;
+  font-weight: 900;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0,0,0,.12);
+  transition: transform .08s, box-shadow .12s;
+}
+.map-fab:hover{ transform: translateY(-1px); box-shadow: 0 14px 32px rgba(0,0,0,.16); }
+
+/* sol-alt "Get List" */
+.map-fab.list{ left:18px; right:auto; }
+
+/* (Not) map.css içinde .map-controls TANIMI YOK — çakışmayı önlemek için
+   kontrollerin tüm stilleri map-controls.css'te. */
+
+/* OpenLayers zoom butonlarının harita içinde kalması için istersen: */
+.ol-zoom{
+  top: 10px !important;
+  left: 10px !important;   /* buton kolonu ile çakışmaz */
+}

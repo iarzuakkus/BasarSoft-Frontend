@@ -1,0 +1,100 @@
+/* grid arka plan */
+.sheet{
+  min-height: 100dvh;
+  width: 100%;
+  padding: 18px 0;
+  color-scheme: light;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 23px, var(--grid-line) 24px),
+    repeating-linear-gradient(90deg, transparent, transparent 23px, var(--grid-line) 24px),
+    var(--grid-bg);
+}
+
+/* ortalı başlık — daha büyük */
+.header { display: grid; place-items: center; padding: 8px 12px 6px; }
+.brand { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: .2px; }
+
+/* ortalı sahne: kenarlardan boşluk + max genişlik */
+.stage {
+  max-width: 1320px;       /* harita ve toolbar genişliği */
+  padding: 0 18px;         /* kenar boşluğu */
+  margin: 0 auto;          /* ortala */
+}
+
+/* toolbar */
+.toolbar{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  justify-content:flex-start;
+  margin:10px 2px 18px 2px;
+}
+.toolbar-left{ display:flex; gap:12px; flex-wrap:wrap; }
+
+/* work area — 16:9 geniş canvas */
+.work{ margin: 8px 2px 32px 2px; padding:0; }
+.work-inner{
+  background: transparent;     /* sayfa grid'i görünsün */
+  min-height:0;
+  padding: 0;
+}
+
+/* footer */
+.footer { padding: 12px 0 18px; text-align: center; color: var(--muted); }
+
+/* modal geniş varyant (liste için) */
+.modal { max-width: 560px; }
+.modal-wide { width: min(1100px, 92vw); max-width: min(1100px, 92vw); }
+
+/* ========= List modal: fixed size + internal scroll ========= */
+.modal.modal-wide{
+  width: 95%;
+  max-width: 1100px;        /* sabit, geniş modal */
+  max-height: 80vh;         /* SABİT yükseklik */
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+}
+
+.list-modal{ display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.list-title{ font-weight: 800; font-size: 18px; }
+
+.list-scroll{
+  flex: 1;                  /* kalan alanı kapla */
+  min-height: 0;            /* flex-overflow hatalarını engeller */
+  overflow: auto;           /* içeriden kaydırma */
+  border: 1px solid #e5eef5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* tablo */
+.geo-table{ width: 100%; border-collapse: collapse; table-layout: fixed; }
+.geo-table th, .geo-table td{ padding: 10px 12px; border-bottom: 1px solid #eef2f7; text-align: left; }
+.geo-table th{ position: sticky; top: 0; background: #f8fbff; z-index: 1; font-weight: 800; }
+.geo-table td.wkt{
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color: #475569;
+}
+.geo-table td.muted, .muted{ color:#6b7280; text-align:center; padding: 24px 12px; }
+
+/* ====== HARİTA DIŞI KONTROLLER (absolute) ====== */
+.map-canvas-wrapper{ position: relative; }
+
+/* Haritanın sol DIŞINA sabitle (dikey) */
+.map-controls.outside-absolute{
+  position: absolute;
+  top: 12px;
+  left: -60px;          /* çerçevenin dışına çıkarır; 56–64 arası oynatabilirsin */
+  display: flex;
+  flex-direction: column; /* alt alta */
+  gap: 10px;
+  z-index: 1500;
+}
+
+/* OpenLayers zoom harita içinde kalsın */
+.ol-zoom{
+  top: 10px !important;
+  left: 10px !important;
+}

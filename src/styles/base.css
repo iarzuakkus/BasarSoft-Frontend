@@ -1,0 +1,45 @@
+:root{
+  --grid-bg: #f5fbff;
+  --grid-line: #a6d9f3;
+
+  --text: #2b2f36;
+  --muted:#6b7280;
+
+  --orange: #ff8f4e;
+  --cyan: #67c8e3;
+
+  --panel: #ffffff;
+  --ring:#bfe9ff;
+
+  --radius-lg: 18px;
+  --shadow-lg: 0 18px 60px rgba(0,0,0,.15);
+  --shadow-sm: 0 10px 30px rgba(0,0,0,.08);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; width: 100%; margin: 0; }
+body {
+  font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: var(--grid-bg);
+  overflow-x: hidden;
+}
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+.hint{ margin:6px 2px 0; color:#6b7280; font-size:12px; }
+
+/* modal/backdrop (centered) */
+.modal-backdrop{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.35);
+  display:grid; place-items:center; z-index:50;
+}
+.modal{
+  width: 95%;
+  max-width: 560px;
+  background: var(--panel);
+  border-radius: var(--radius-lg);
+  padding: 18px 18px 14px;
+  border:1px solid #eaf3f8;
+  box-shadow: var(--shadow-lg);
+}
+.modal h3{ margin:0 0 12px; font-size:18px; }
