@@ -1,4 +1,4 @@
-// src/components/MapCanvas.jsx
+// MapCanvas.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "ol/ol.css";
 import Map from "ol/Map";
@@ -12,64 +12,50 @@ import { fromLonLat, transformExtent } from "ol/proj";
 import { defaults as defaultInteractions } from "ol/interaction";
 
 import DrawPoint from "./map/DrawPoint.jsx";
-import DrawLine from "./map/DrawLine.jsx";
+import DrawLine from "./map/DrawLine.jsx"; // sadece bu var
 import DrawPolygon from "./map/DrawPolygon.jsx";
 import MapControls from "./map/MapControls.jsx";
 
-// WKT yardımcıları
 import { MAP_SRID, readFeatureSmart } from "./map/WktUtils.js";
 
-/**
- * Props:
- * - type: "POINT" | "LINESTRING" | "POLYGON"
- * - items: [{ id,name,type,wkt }, ...]
- * - onGetAll: () => Promise<void>
- * - onOpenList: () => void
- * - onSketchWkt: (wkt4326: string) => void
- */
-export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchWkt }) {
+export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchWkt, onFinishSketch }) {
   const slotRef = useRef(null);
-  const mapRef = useRef/** @type {Map|null} */(null);
+  const mapRef = useRef(null);
 
-  // Kaydedilmiş veriler için katman
   const dataSourceRef = useRef(new VectorSource());
-  const dataLayerRef = useRef(
-    new VectorLayer({
-      source: dataSourceRef.current,
-      style: new Style({
-        stroke: new Stroke({ color: "#0ea5e9", width: 2 }),
-        fill: new Fill({ color: "rgba(14,165,233,.15)" }),
-        image: new CircleStyle({ radius: 5, fill: new Fill({ color: "#0ea5e9" }) }),
-      }),
-      zIndex: 5,
-    })
-  );
-
-  // Canlı/bitmiş çizim için katman
   const sketchSourceRef = useRef(new VectorSource());
-  const sketchLayerRef = useRef(
-    new VectorLayer({
-      source: sketchSourceRef.current,
-      style: new Style({
-        stroke: new Stroke({ color: "#2563eb", width: 3 }),
-        fill: new Fill({ color: "rgba(37,99,235,.12)" }),
-        image: new CircleStyle({
-          radius: 6,
-          fill: new Fill({ color: "#2563eb" }),
-          stroke: new Stroke({ color: "#fff", width: 2 }),
-        }),
+
+  const dataLayerRef = useRef(new VectorLayer({
+    source: dataSourceRef.current,
+    style: new Style({
+      stroke: new Stroke({ color: "#0ea5e9", width: 2 }),
+      fill: new Fill({ color: "rgba(14,165,233,.15)" }),
+      image: new CircleStyle({ radius: 5, fill: new Fill({ color: "#0ea5e9" }) }),
+    }),
+    zIndex: 5,
+  }));
+
+  const sketchLayerRef = useRef(new VectorLayer({
+    source: sketchSourceRef.current,
+    style: new Style({
+      stroke: new Stroke({ color: "#2563eb", width: 3 }),
+      fill: new Fill({ color: "rgba(37,99,235,.12)" }),
+      image: new CircleStyle({
+        radius: 6,
+        fill: new Fill({ color: "#2563eb" }),
+        stroke: new Stroke({ color: "#fff", width: 2 }),
       }),
-      zIndex: 10,
-    })
-  );
+    }),
+    zIndex: 10,
+  }));
 
   const [ready, setReady] = useState(false);
-  const [mode, setMode] = useState("cursor"); // 'cursor' | 'point'
+  const [mode, setMode] = useState("cursor");
+  const [currentSketchWkt, setCurrentSketchWkt] = useState("");
 
-  // Türkiye yaklaşık bbox (EPSG:4326)
+  const drawLineRef = useRef(null);
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
 
-  // Haritayı kur
   useEffect(() => {
     const map = new Map({
       target: slotRef.current,
@@ -86,18 +72,17 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
 
     const tr = transformExtent(TR_BBOX_4326, "EPSG:4326", MAP_SRID);
     map.getView().fit(tr, { padding: [20, 20, 20, 20], maxZoom: 7 });
-    setReady(true);
 
     const onResize = () => map.updateSize();
     window.addEventListener("resize", onResize);
+    setReady(true);
+
     return () => {
       window.removeEventListener("resize", onResize);
       map.setTarget(null);
-      mapRef.current = null;
     };
   }, []);
 
-  // API verilerini katmana bas + fit
   useEffect(() => {
     const map = mapRef.current;
     const src = dataSourceRef.current;
@@ -115,10 +100,25 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
     }
   }, [items]);
 
-  // Reset
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      sketchSourceRef.current?.clear();
+      setCurrentSketchWkt("");
+    } catch {}
+  }, [type, mode, ready]);
+
+  useEffect(() => {
+    const el = mapRef.current?.getTargetElement?.();
+    if (!el) return;
+    el.style.cursor = mode === "point" ? "crosshair" : "default";
+    return () => { if (el) el.style.cursor = ""; };
+  }, [mode]);
+
   const handleReset = () => {
     dataSourceRef.current?.clear();
     sketchSourceRef.current?.clear();
+    setCurrentSketchWkt("");
     const map = mapRef.current;
     if (map) {
       const tr = transformExtent(TR_BBOX_4326, "EPSG:4326", MAP_SRID);
@@ -126,32 +126,40 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
     }
   };
 
-  // Mod değiştir
   const handleToggleMode = () => setMode(m => (m === "cursor" ? "point" : "cursor"));
+
+  const handleSketchWkt = (wkt) => {
+    setCurrentSketchWkt(wkt);
+    onSketchWkt?.(wkt);
+  };
+
+  useEffect(() => {
+    if (typeof onFinishSketch === "function") {
+      onFinishSketch(() => {
+        drawLineRef.current?.finish?.();
+      });
+    }
+  }, [onFinishSketch]);
 
   return (
     <div className="map-canvas-wrapper">
-      {/* HARİTA */}
       <div className="map-viewport">
         <div ref={slotRef} className="ol-map-slot" />
 
-        {/* FABs */}
         <button className="map-fab list" type="button" onClick={onOpenList}>Get List</button>
         <button className="map-fab" type="button" onClick={onGetAll}>Get All</button>
 
-        {/* ÇİZİM MODÜLLERİ — sadece DRAW modunda */}
         {ready && mode === "point" && type === "POINT" && (
-          <DrawPoint map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={onSketchWkt} />
+          <DrawPoint map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={handleSketchWkt} />
         )}
         {ready && mode === "point" && type === "LINESTRING" && (
-          <DrawLine map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={onSketchWkt} />
+          <DrawLine ref={drawLineRef} map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={handleSketchWkt} />
         )}
         {ready && mode === "point" && type === "POLYGON" && (
-          <DrawPolygon map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={onSketchWkt} />
+          <DrawPolygon map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={handleSketchWkt} />
         )}
       </div>
 
-      {/* KONTROLLER: harita çerçevesinin DIŞINDA, sol kenara yapışık */}
       <MapControls
         className="outside-absolute"
         mode={mode}

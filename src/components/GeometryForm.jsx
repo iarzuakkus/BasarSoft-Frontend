@@ -1,15 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+// WKT temizleme ve düzeltme
 const normalizeForPost = (raw, type) => {
   if (!raw) return "";
   let s = String(raw).trim();
-  // 12,34 → 12.34 (yalnızca ondalık)
+
+  // 12,34 → 12.34 (ondalık ayracı düzelt)
   s = s.replace(/(\d),(?=\d)/g, (_m, d) => `${d}.`);
-  // parantezleri tamamla
+
+  // Parantezleri dengele
   const open = (s.match(/\(/g) || []).length;
   const close = (s.match(/\)/g) || []).length;
   if (close < open) s += ")".repeat(open - close);
-  // polygon ring kapat
+
+  // POLYGON: dış ring kapalı mı kontrol et
   if (/^\s*POLYGON/i.test(s)) {
     s = s.replace(/POLYGON\s*\(\s*\(([^)]+)\)\s*\)/i, (m, ring) => {
       const pts = ring.split(",").map(t => t.trim()).filter(Boolean);
@@ -17,22 +21,17 @@ const normalizeForPost = (raw, type) => {
       return `POLYGON((${pts.join(", ")}))`;
     });
   }
-  // linestring tek noktaysa -> point
-  if (/^\s*LINESTRING/i.test(s)) {
-    const body = s.replace(/^\s*LINESTRING\s*\(|\)\s*$/gi, "");
-    const coords = body.split(",").map(t => t.trim()).filter(Boolean);
-    if (coords.length <= 1 || (coords.length === 2 && coords[0] === coords[1])) {
-      s = `POINT (${coords[0]})`;
-    }
-  }
+
   return s;
 };
 
 export default function GeometryForm({ type, initialWkt = "", onSubmit, saving }) {
   const [name, setName] = useState("");
-  const [wkt, setWkt]   = useState(initialWkt);
+  const [wkt, setWkt] = useState(initialWkt);
 
-  useEffect(() => { setWkt(initialWkt || ""); }, [initialWkt]);
+  useEffect(() => {
+    setWkt(initialWkt || "");
+  }, [initialWkt]);
 
   const label = useMemo(() => type.charAt(0) + type.slice(1).toLowerCase(), [type]);
 
@@ -48,6 +47,7 @@ export default function GeometryForm({ type, initialWkt = "", onSubmit, saving }
   const submit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !wkt.trim()) return;
+
     const clean = normalizeForPost(wkt, type);
     await onSubmit({ name: name.trim(), type, wkt: clean });
   };
@@ -58,12 +58,23 @@ export default function GeometryForm({ type, initialWkt = "", onSubmit, saving }
       <form onSubmit={submit}>
         <div className="row">
           <label>Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., School Yard" />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., School Yard"
+          />
         </div>
+
         <div className="row">
           <label>{label}</label>
-          <input className="mono" value={wkt} onChange={(e) => setWkt(e.target.value)} placeholder={placeholder} />
+          <input
+            className="mono"
+            value={wkt}
+            onChange={(e) => setWkt(e.target.value)}
+            placeholder={placeholder}
+          />
         </div>
+
         <div className="actions">
           <button type="submit" className="btn primary" disabled={saving}>
             {saving ? "Saving..." : "Add"}
