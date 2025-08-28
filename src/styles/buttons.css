@@ -94,12 +94,16 @@ button.btn,
   transition: transform .06s, box-shadow .12s, background .12s;
 }
 
+/* ✅ Add butonu (açık yeşil arka plan + yeşil yazı) */
 .btn.primary {
-  background: #2563eb;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(37,99,235,.25);
+  background: #d1fae5; /* açık yeşil */
+  color: #16a34a;     /* koyu yeşil yazı */
+  box-shadow: 0 8px 18px rgba(22,163,74,.15);
 }
-.btn.primary:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(37,99,235,.28); }
+.btn.primary:hover { 
+  transform: translateY(-1px); 
+  box-shadow: 0 12px 26px rgba(22,163,74,.25); 
+}
 .btn.primary:active { transform: translateY(0); }
 
 .btn.ghost {
