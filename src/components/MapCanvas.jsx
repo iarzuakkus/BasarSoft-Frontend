@@ -13,9 +13,9 @@ import { MAP_SRID, readFeatureSmart } from "./map/WktUtils.js";
 import DrawControls from "./DrawControls.jsx";
 import MapControls from "./map/MapControls.jsx";
 import { createDataLayer, createSketchLayer } from "./layers.js";
-import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx"; // 🆕 EKLENDİ
+import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx";
 
-export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchWkt, onFinishSketch }) {
+export default function MapCanvas({ type, items: itemsProp, onGetAll, onOpenList, onSketchWkt, onFinishSketch }) {
   const slotRef = useRef(null);
   const mapRef = useRef(null);
 
@@ -28,6 +28,7 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState("cursor");
   const [currentSketchWkt, setCurrentSketchWkt] = useState("");
+  const [items, setItems] = useState(itemsProp || []); // ✅ items local state
 
   const drawLineRef = useRef(null);
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
@@ -59,6 +60,13 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
       map.setTarget(null);
     };
   }, []);
+
+  // === Sync dışarıdan items geldiyse ===
+  useEffect(() => {
+    if (Array.isArray(itemsProp)) {
+      setItems(itemsProp);
+    }
+  }, [itemsProp]);
 
   // === ITEMS TO MAP ===
   useEffect(() => {
@@ -142,6 +150,8 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
             map={mapRef.current}
             dataSource={dataSourceRef.current}
             items={items}
+            setItems={setItems}   // ✅ eklendi
+            mode={mode}
           />
         )}
       </div>

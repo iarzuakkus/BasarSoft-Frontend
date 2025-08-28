@@ -1,11 +1,7 @@
-/* popup.css */
-
+/* === Genel popup kutusu === */
 .ol-popup {
   position: absolute;
-  /* GENİŞLİK: dar görünümü engelle */
-  /* 360px ile 560px arası, ekranın %42'si hedef */
   width: clamp(360px, 42vw, 560px);
-  /* eski min/max varsa kalsın ama width öncelikli */
   min-width: 360px;
   max-width: 560px;
 
@@ -19,14 +15,16 @@
   z-index: 999;
 }
 
-/* Çok uzun içerikte ekranı taşmasın */
+/* İçerik kaydırma */
 .ol-popup .popup-content {
   line-height: 1.45;
   color: #374151;
-  max-height: 60vh;       /* popup içi dikey kaydırma */
+  max-height: 60vh;
   overflow-y: auto;
 }
 
+/* Başlık */
+.ol-popup h3,
 .ol-popup h4 {
   margin: 0 0 10px;
   font-size: 16px;
@@ -34,6 +32,7 @@
   color: #111827;
 }
 
+/* Kapatma butonu */
 .ol-popup .close-btn {
   position: absolute;
   top: 10px;
@@ -45,14 +44,16 @@
   cursor: pointer;
   color: #9ca3af;
 }
-.ol-popup .close-btn:hover { color: #ef4444; }
+.ol-popup .close-btn:hover {
+  color: #ef4444;
+}
 
-/* === Table-like info === */
+/* === Bilgi tablosu === */
 .info-table {
   width: 100%;
   border-collapse: collapse;
   margin: 6px 0 10px 0;
-  table-layout: fixed;           /* kolonlar sabit genişlikte, taşma yok */
+  table-layout: fixed;
 }
 .info-table th,
 .info-table td {
@@ -62,48 +63,58 @@
   border-bottom: 1px solid #e5e7eb;
 }
 .info-table th {
-  width: 120px;                  /* başlık kolonu daha geniş */
+  width: 120px;
   color: #6b7280;
   font-weight: 600;
 }
-
-/* Uzun metinleri düzgün kır */
 .info-table td {
   white-space: normal;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
-
-/* WKT hücresi (monospace + satır kır) */
+/* WKT hücresi */
 .wkt-cell {
   white-space: pre-wrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-
 .info-table tr:last-child th,
 .info-table tr:last-child td {
   border-bottom: none;
 }
 
+/* Bölüm */
 .info-section {
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px dashed #e5e7eb;
 }
-
 .info-section h5 {
   margin: 0 0 6px 0;
   font-size: 13px;
   color: #111827;
 }
 
+/* Liste */
 .info-list {
   margin: 0;
-  padding-left: 18px;
+  padding-left: 0;
   max-height: 160px;
   overflow-y: auto;
+  list-style: none;
+}
+.info-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.info-list li:hover {
+  background: #f9fafb;
 }
 
+/* Etiket */
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -113,4 +124,109 @@
   border-radius: 999px;
   border: 1px solid #e0e7ff;
   margin-left: 6px;
+}
+
+/* === Form alanları === */
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.popup-input,
+.popup-textarea {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.popup-input:focus,
+.popup-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  outline: none;
+}
+
+/* === Aksiyon butonları === */
+.popup-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 20px;
+  border-radius: 999px;          /* tam oval */
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff;
+  border: 2px solid transparent;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+/* Mavi buton (Edit / Save) */
+.btn.edit,
+.btn.save {
+  background: #f0f8ff;       /* çok açık mavi */
+  border-color: #2563eb;     /* koyu mavi */
+  color: #2563eb;
+}
+
+/* Kırmızı buton (Delete) */
+.btn.delete {
+  background: #fff5f5;       /* çok açık kırmızı */
+  border-color: #dc2626;     /* koyu kırmızı */
+  color: #dc2626;
+  margin-left: auto;
+}
+
+/* Gri buton (Cancel) */
+.btn.cancel {
+  background: #f9fafb;
+  border-color: #6b7280;
+  color: #374151;
+}
+
+/* === Eye button (zoom) === */
+.eye-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  margin-left: 6px;
+  color: #374151;
+  transition: transform 0.1s, color 0.2s;
+}
+.eye-btn:hover {
+  transform: scale(1.15);
+  color: #2563eb;
+}
+
+/* Fade animasyonu */
+.geometry-info.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+.geometry-info.fade-out {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes fadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
 }

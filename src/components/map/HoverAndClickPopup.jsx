@@ -3,9 +3,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { toStringHDMS } from "ol/coordinate";
 import { WKT } from "ol/format";
 import Overlay from "ol/Overlay";
-import { getGeometryById } from "../../api/geometryApi";
+import { getGeometryById, updateGeometry, deleteGeometry } from "../../api/geometryApi";
 import PopupOverlay from "./PopupOverlay";
+import GeometryInfoPopup from "./GeometryInfoPopup";
 import "../../styles/popup.css";
+import EyeIcon from "../ui/EyeIcon"; // 👁️ icon import
 
 const wktFormat = new WKT();
 const PIXEL_TOLERANCE = 10; // px
@@ -15,16 +17,20 @@ function safeFormatArea(geom) {
   try {
     const a = geom.getArea();
     return a > 10000 ? `${(a / 1_000_000).toFixed(2)} km²` : `${a.toFixed(2)} m²`;
-  } catch { return "-"; }
+  } catch {
+    return "-";
+  }
 }
 function safeFormatLength(geom) {
   try {
     const L = geom.getLength();
     return L > 1000 ? `${(L / 1000).toFixed(2)} km` : `${L.toFixed(2)} m`;
-  } catch { return "-"; }
+  } catch {
+    return "-";
+  }
 }
 
-export default function HoverAndClickPopup({ map, items }) {
+export default function HoverAndClickPopup({ map, items, setItems, mode }) {
   const hoverRef = useRef(null);
   const hoverOverlayRef = useRef(null);
   const [hoverText, setHoverText] = useState(null);
@@ -44,7 +50,9 @@ export default function HoverAndClickPopup({ map, items }) {
     });
     map.addOverlay(hoverOverlayRef.current);
     return () => {
-      try { map.removeOverlay(hoverOverlayRef.current); } catch {}
+      try {
+        map.removeOverlay(hoverOverlayRef.current);
+      } catch {}
       hoverOverlayRef.current = null;
     };
   }, [map]);
@@ -82,31 +90,34 @@ export default function HoverAndClickPopup({ map, items }) {
         const res = map.getView().getResolution() || 1;
         const tolMU = PIXEL_TOLERANCE * res;
 
-        for (const it of geometries) {
-          const geom = it.geometry;
-          if (!geom) continue;
+        // 1. Önce Point
+        for (const it of geometries.filter((g) => g.geometry.getType() === "Point")) {
+          const p = it.geometry.getCoordinates();
+          if (muDist(p, mouseCoord) <= tolMU) return { item: it, hitCoord: p };
+        }
 
-          switch (geom.getType()) {
-            case "Point": {
-              const p = geom.getCoordinates();
-              if (muDist(p, mouseCoord) <= tolMU) return { item: it, hitCoord: p };
-              break;
-            }
-            case "LineString": {
-              const cp = geom.getClosestPoint(mouseCoord);
-              if (muDist(cp, mouseCoord) <= tolMU) return { item: it, hitCoord: cp };
-              break;
-            }
-            case "Polygon": {
-              if (geom.intersectsCoordinate(mouseCoord)) return { item: it, hitCoord: mouseCoord };
-              const cp = geom.getClosestPoint(mouseCoord);
-              if (muDist(cp, mouseCoord) <= tolMU) return { item: it, hitCoord: cp };
-              break;
-            }
-            default:
-              break;
+        // 2. Sonra LineString
+        for (const it of geometries.filter((g) => g.geometry.getType() === "LineString")) {
+          const cp = it.geometry.getClosestPoint(mouseCoord);
+          if (muDist(cp, mouseCoord) <= tolMU) return { item: it, hitCoord: cp };
+        }
+
+        // 3. En son Polygon → küçükten büyüğe sırala
+        const polys = geometries
+          .filter((g) => g.geometry.getType() === "Polygon")
+          .sort((a, b) => a.geometry.getArea() - b.geometry.getArea());
+
+        for (const it of polys) {
+          const geom = it.geometry;
+          if (geom.intersectsCoordinate(mouseCoord)) {
+            return { item: it, hitCoord: mouseCoord };
+          }
+          const cp = geom.getClosestPoint(mouseCoord);
+          if (muDist(cp, mouseCoord) <= tolMU) {
+            return { item: it, hitCoord: cp };
           }
         }
+
         return null;
       } catch (e) {
         console.warn("findGeometryAt:", e);
@@ -115,7 +126,7 @@ export default function HoverAndClickPopup({ map, items }) {
     };
 
     const onMove = (evt) => {
-      if (popupOpen) return;
+      if (popupOpen || mode !== "cursor") return; // sadece cursor modunda hover çalışsın
       const found = findGeometryAt(evt);
       if (found) {
         setHoverText(found.item.name ?? "(no name)");
@@ -127,6 +138,8 @@ export default function HoverAndClickPopup({ map, items }) {
     };
 
     const onClick = async (evt) => {
+      if (mode !== "cursor") return; // çizim modunda click çalışmasın
+
       if (popupOpen) {
         const hit = findGeometryAt(evt);
         if (!hit) {
@@ -152,7 +165,7 @@ export default function HoverAndClickPopup({ map, items }) {
         setPopupCoord(coord);
 
         let name = it.name ?? "(no name)";
-        let wkt  = it.wkt ?? "(no wkt)";
+        let wkt = it.wkt ?? "(no wkt)";
         let typeName = it.type ?? type;
         const hdms = toStringHDMS(coord);
 
@@ -162,7 +175,7 @@ export default function HoverAndClickPopup({ map, items }) {
             const d = detailed?.data;
             if (d) {
               name = d.name ?? name;
-              wkt  = d.wkt ?? wkt;
+              wkt = d.wkt ?? wkt;
               typeName = d.type ?? typeName;
             }
           } catch (e) {
@@ -181,7 +194,9 @@ export default function HoverAndClickPopup({ map, items }) {
             const t = g.getType();
 
             if (t === "Point") {
-              if (geom.intersectsCoordinate(g.getCoordinates())) insidePoints.push(other);
+              if (geom.intersectsCoordinate(g.getCoordinates())) {
+                insidePoints.push(other);
+              }
             } else if (t === "LineString") {
               const cp = g.getClosestPoint(coord);
               if (geom.intersectsExtent(g.getExtent()) || geom.intersectsCoordinate(cp)) {
@@ -199,10 +214,27 @@ export default function HoverAndClickPopup({ map, items }) {
 
               {insidePoints.length > 0 && (
                 <>
-                  <h5>Contains Points <span className="badge">{insidePoints.length}</span></h5>
+                  <h5>
+                    Contains Points <span className="badge">{insidePoints.length}</span>
+                  </h5>
                   <ul className="info-list">
                     {insidePoints.map((p) => (
-                      <li key={`pt-${p.id || p.name}`}>{p.name} <span className="badge">Point</span></li>
+                      <li
+                        key={`pt-${p.id || p.name}`}
+                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      >
+                        <span>
+                          {p.name} <span className="badge">Point</span>
+                        </span>
+                        <button
+                          className="eye-btn"
+                          onClick={() => {
+                            map.getView().fit(p.geometry.getExtent(), { maxZoom: 14, duration: 500 });
+                          }}
+                        >
+                          <EyeIcon size={16} />
+                        </button>
+                      </li>
                     ))}
                   </ul>
                 </>
@@ -210,10 +242,28 @@ export default function HoverAndClickPopup({ map, items }) {
 
               {intersectingLines.length > 0 && (
                 <>
-                  <h5>Intersecting LineStrings <span className="badge">{intersectingLines.length}</span></h5>
+                  <h5>
+                    Intersecting LineStrings{" "}
+                    <span className="badge">{intersectingLines.length}</span>
+                  </h5>
                   <ul className="info-list">
                     {intersectingLines.map((l) => (
-                      <li key={`ln-${l.id || l.name}`}>{l.name} <span className="badge">LineString</span></li>
+                      <li
+                        key={`ln-${l.id || l.name}`}
+                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      >
+                        <span>
+                          {l.name} <span className="badge">LineString</span>
+                        </span>
+                        <button
+                          className="eye-btn"
+                          onClick={() => {
+                            map.getView().fit(l.geometry.getExtent(), { maxZoom: 14, duration: 500 });
+                          }}
+                        >
+                          <EyeIcon size={16} />
+                        </button>
+                      </li>
                     ))}
                   </ul>
                 </>
@@ -232,28 +282,47 @@ export default function HoverAndClickPopup({ map, items }) {
         if (type === "LineString") {
           lineSection = (
             <div className="info-section">
-              <h5>LineString Metrics <span className="badge">Length: {safeFormatLength(geom)}</span></h5>
+              <h5>
+                LineString Metrics{" "}
+                <span className="badge">Length: {safeFormatLength(geom)}</span>
+              </h5>
             </div>
           );
         }
 
-        const table = (
-          <table className="info-table">
-            <tbody>
-              <tr><th>Name</th><td>{name}</td></tr>
-              <tr><th>WKT</th><td className="wkt-cell">{wkt}</td></tr>
-              <tr><th>Type</th><td>{typeName}</td></tr>
-              <tr><th>HDMS</th><td>{hdms}</td></tr>
-            </tbody>
-          </table>
-        );
-
         setPopupContent(
-          <div>
-            {table}
-            {polygonSection}
-            {lineSection}
-          </div>
+          <GeometryInfoPopup
+            feature={{
+              id: it.id,
+              name,
+              wkt,
+              type: typeName,
+              hdms,
+              metrics: polygonSection || lineSection,
+            }}
+            onClose={() => {
+              setPopupContent(null);
+              setPopupCoord(null);
+              setPopupOpen(false);
+            }}
+            onUpdate={async (updated) => {
+              await updateGeometry(updated.id, updated);
+              if (typeof setItems === "function") {
+                setItems((prev) =>
+                  prev.map((g) => (g.id === updated.id ? { ...g, ...updated } : g))
+                );
+              }
+            }}
+            onDelete={async (id) => {
+              await deleteGeometry(id);
+              if (typeof setItems === "function") {
+                setItems((prev) => prev.filter((g) => g.id !== id));
+              }
+              setPopupContent(null);
+              setPopupCoord(null);
+              setPopupOpen(false);
+            }}
+          />
         );
         setPopupOpen(true);
       } catch (err) {
@@ -267,7 +336,7 @@ export default function HoverAndClickPopup({ map, items }) {
       map.un("pointermove", onMove);
       map.un("click", onClick);
     };
-  }, [map, items, popupOpen]);
+  }, [map, items, popupOpen, setItems, mode]);
 
   return (
     <>
