@@ -39,12 +39,17 @@ export function useGeometries() {
 
         const feat = new Feature({
           geometry: geom,
+          id: item.id,         // ✅ doğrudan constructor'a ekledik
+          name: item.name,
+          type: item.type,
+          wkt: item.wkt,
         });
 
-        feat.set("id", item.id);       // ✅ ID set
-        feat.set("name", item.name);   // ✅ Name set
-        feat.set("wkt", item.wkt);
+        // Yedek amaçlı ayrıca .set ile de atanıyor
+        feat.set("id", item.id);
+        feat.set("name", item.name);
         feat.set("type", item.type);
+        feat.set("wkt", item.wkt);
 
         return feat;
       });
@@ -79,7 +84,9 @@ export function useGeometries() {
     }
   }, [load]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return { items, layer, loading, saving, error, setError, load, add };
 }
