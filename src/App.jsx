@@ -12,6 +12,7 @@ import "./styles/layout.css";
 import "./styles/buttons.css";
 import "./styles/form.css";
 import "./styles/map.css";
+import "./styles/popup.css";
 
 export default function App() {
   const [type, setType] = useState("POINT");

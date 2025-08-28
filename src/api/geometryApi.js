@@ -7,6 +7,7 @@ const BASE = (RAW || "https://localhost:7294").replace(/\/+$/, "");
 
 const GET_URL  = `${BASE}/api/Geometry`;
 const POST_URL = `${BASE}/api/Geometry`;
+const BY_ID_URL = (id) => `${BASE}/api/Geometry/${id}`;
 
 const unwrap = (data) => {
   if (Array.isArray(data)) return data;
@@ -24,6 +25,26 @@ const jsonOrThrow = async (res) => {
 
 export async function getAllGeometries() {
   const res = await fetch(GET_URL, { method: "GET" });
+  return jsonOrThrow(res);
+}
+
+export async function getGeometryById(id) {
+  const res = await fetch(BY_ID_URL(id), { method: "GET" });
+  return jsonOrThrow(res);
+}
+
+export async function updateGeometry(id, { name, type, wkt }) {
+  const payload = { id, name, type, wkt };
+  const res = await fetch(BY_ID_URL(id), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function deleteGeometry(id) {
+  const res = await fetch(BY_ID_URL(id), { method: "DELETE" });
   return jsonOrThrow(res);
 }
 

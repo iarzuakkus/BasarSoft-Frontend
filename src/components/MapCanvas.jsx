@@ -1,4 +1,3 @@
-// MapCanvas.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "ol/ol.css";
 import Map from "ol/Map";
@@ -7,16 +6,14 @@ import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import OSM from "ol/source/OSM";
 import VectorSource from "ol/source/Vector";
-import { Fill, Stroke, Circle as CircleStyle, Style } from "ol/style";
 import { fromLonLat, transformExtent } from "ol/proj";
 import { defaults as defaultInteractions } from "ol/interaction";
 
-import DrawPoint from "./map/DrawPoint.jsx";
-import DrawLine from "./map/DrawLine.jsx"; // sadece bu var
-import DrawPolygon from "./map/DrawPolygon.jsx";
-import MapControls from "./map/MapControls.jsx";
-
 import { MAP_SRID, readFeatureSmart } from "./map/WktUtils.js";
+import DrawControls from "./DrawControls.jsx";
+import MapControls from "./map/MapControls.jsx";
+import { createDataLayer, createSketchLayer } from "./layers.js";
+import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx"; // 🆕 EKLENDİ
 
 export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchWkt, onFinishSketch }) {
   const slotRef = useRef(null);
@@ -25,29 +22,8 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
   const dataSourceRef = useRef(new VectorSource());
   const sketchSourceRef = useRef(new VectorSource());
 
-  const dataLayerRef = useRef(new VectorLayer({
-    source: dataSourceRef.current,
-    style: new Style({
-      stroke: new Stroke({ color: "#0ea5e9", width: 2 }),
-      fill: new Fill({ color: "rgba(14,165,233,.15)" }),
-      image: new CircleStyle({ radius: 5, fill: new Fill({ color: "#0ea5e9" }) }),
-    }),
-    zIndex: 5,
-  }));
-
-  const sketchLayerRef = useRef(new VectorLayer({
-    source: sketchSourceRef.current,
-    style: new Style({
-      stroke: new Stroke({ color: "#2563eb", width: 3 }),
-      fill: new Fill({ color: "rgba(37,99,235,.12)" }),
-      image: new CircleStyle({
-        radius: 6,
-        fill: new Fill({ color: "#2563eb" }),
-        stroke: new Stroke({ color: "#fff", width: 2 }),
-      }),
-    }),
-    zIndex: 10,
-  }));
+  const dataLayerRef = useRef(createDataLayer(dataSourceRef.current));
+  const sketchLayerRef = useRef(createSketchLayer(sketchSourceRef.current));
 
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState("cursor");
@@ -56,6 +32,7 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
   const drawLineRef = useRef(null);
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
 
+  // === MAP INIT ===
   useEffect(() => {
     const map = new Map({
       target: slotRef.current,
@@ -83,6 +60,7 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
     };
   }, []);
 
+  // === ITEMS TO MAP ===
   useEffect(() => {
     const map = mapRef.current;
     const src = dataSourceRef.current;
@@ -100,21 +78,21 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
     }
   }, [items]);
 
+  // === RESET ON TYPE CHANGE ===
   useEffect(() => {
     if (!ready) return;
-    try {
-      sketchSourceRef.current?.clear();
-      setCurrentSketchWkt("");
-    } catch {}
+    sketchSourceRef.current?.clear();
+    setCurrentSketchWkt("");
   }, [type, mode, ready]);
 
   useEffect(() => {
     const el = mapRef.current?.getTargetElement?.();
     if (!el) return;
     el.style.cursor = mode === "point" ? "crosshair" : "default";
-    return () => { if (el) el.style.cursor = ""; };
+    return () => { el.style.cursor = ""; };
   }, [mode]);
 
+  // === HELPERS ===
   const handleReset = () => {
     dataSourceRef.current?.clear();
     sketchSourceRef.current?.clear();
@@ -145,18 +123,26 @@ export default function MapCanvas({ type, items, onGetAll, onOpenList, onSketchW
     <div className="map-canvas-wrapper">
       <div className="map-viewport">
         <div ref={slotRef} className="ol-map-slot" />
-
         <button className="map-fab list" type="button" onClick={onOpenList}>Get List</button>
         <button className="map-fab" type="button" onClick={onGetAll}>Get All</button>
 
-        {ready && mode === "point" && type === "POINT" && (
-          <DrawPoint map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={handleSketchWkt} />
+        {ready && (
+          <DrawControls
+            type={type}
+            mode={mode}
+            map={mapRef.current}
+            sketchSource={sketchSourceRef.current}
+            onWkt={handleSketchWkt}
+            drawLineRef={drawLineRef}
+          />
         )}
-        {ready && mode === "point" && type === "LINESTRING" && (
-          <DrawLine ref={drawLineRef} map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={handleSketchWkt} />
-        )}
-        {ready && mode === "point" && type === "POLYGON" && (
-          <DrawPolygon map={mapRef.current} sketchSource={sketchSourceRef.current} onWkt={handleSketchWkt} />
+
+        {ready && (
+          <HoverAndClickPopup
+            map={mapRef.current}
+            dataSource={dataSourceRef.current}
+            items={items}
+          />
         )}
       </div>
 

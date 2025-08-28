@@ -1,18 +1,62 @@
+// hooks/useGeometries.js
 import { useEffect, useState, useCallback } from "react";
 import { getAllGeometries, createGeometry } from "../api/geometryApi.js";
+import { Vector as VectorSource } from "ol/source";
+import { Vector as VectorLayer } from "ol/layer";
+import Feature from "ol/Feature";
+import { WKT } from "ol/format";
+import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
+
+const defaultStyle = new Style({
+  stroke: new Stroke({ color: "#2979ff", width: 2 }),
+  fill: new Fill({ color: "rgba(41, 121, 255, 0.2)" }),
+  image: new CircleStyle({ radius: 5, fill: new Fill({ color: "#2979ff" }) })
+});
 
 export function useGeometries() {
   const [items, setItems] = useState([]);
+  const [layer, setLayer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const format = new WKT();
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
+
     try {
       const data = await getAllGeometries();
-      setItems(Array.isArray(data) ? data : []);
+      const valid = Array.isArray(data) ? data : [];
+      setItems(valid);
+
+      const source = new VectorSource();
+
+      const features = valid.map((item) => {
+        const geom = format.readGeometry(item.wkt);
+        geom.transform("EPSG:4326", "EPSG:3857");
+
+        const feat = new Feature({
+          geometry: geom,
+        });
+
+        feat.set("id", item.id);       // ✅ ID set
+        feat.set("name", item.name);   // ✅ Name set
+        feat.set("wkt", item.wkt);
+        feat.set("type", item.type);
+
+        return feat;
+      });
+
+      source.addFeatures(features);
+
+      const vectorLayer = new VectorLayer({
+        source,
+        style: defaultStyle,
+      });
+
+      setLayer(vectorLayer);
     } catch (e) {
       setError(e.message || "Yükleme hatası");
     } finally {
@@ -37,5 +81,5 @@ export function useGeometries() {
 
   useEffect(() => { load(); }, [load]);
 
-  return { items, loading, saving, error, setError, load, add };
+  return { items, layer, loading, saving, error, setError, load, add };
 }

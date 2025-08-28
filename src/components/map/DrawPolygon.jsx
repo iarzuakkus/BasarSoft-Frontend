@@ -1,12 +1,9 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Draw } from "ol/interaction";
 import { writeWkt } from "./WktUtils";
 
 /**
- * Polygon çizimi – canlı kapanış kenarı & dolgu görünümü (OL default sketch).
- * Bitirme: Double-Click veya Enter
- * Undo: Backspace/Delete
- * İptal: Esc
+ * Polygon çizimi – canlı çizgi & ilk noktaya yaklaşınca kapanma.
  */
 export default function DrawPolygon({ map, sketchSource, onWkt }) {
   const drawRef = useRef(null);
@@ -17,38 +14,26 @@ export default function DrawPolygon({ map, sketchSource, onWkt }) {
     const draw = new Draw({
       source: sketchSource,
       type: "Polygon",
+      // autoClose = true: OL kendisi ilk noktaya yakınsa kapatır (default davranış)
+      // freehand: false → tıklayarak çiz
+      freehand: false
     });
+
     drawRef.current = draw;
 
-    // klavye kısayolları
-    const onKey = (e) => {
-      if (e.key === "Enter") {
-        try { draw.finishDrawing(); } catch {}
-      } else if (e.key === "Escape") {
-        try { draw.abortDrawing(); } catch {}
-      } else if (e.key === "Backspace" || e.key === "Delete") {
-        try { draw.removeLastPoint(); } catch {}
-      }
-    };
-    window.addEventListener("keydown", onKey);
-
-    draw.on("drawstart", (evt) => {
-      sketchSource.clear();
+    draw.on("drawstart", () => {
+      sketchSource.clear();        // önceki çizimi temizle
       setCursor(map, true);
-      const geom = evt.feature.getGeometry();
-      const push = () => onWkt?.(writeWkt(geom)); // 4326
-      geom.on("change", push);
-      push();
     });
 
     draw.on("drawend", (evt) => {
-      onWkt?.(writeWkt(evt.feature.getGeometry()));
+      const geom = evt.feature.getGeometry();
+      onWkt?.(writeWkt(geom));
       setCursor(map, false);
     });
 
     map.addInteraction(draw);
     return () => {
-      window.removeEventListener("keydown", onKey);
       map.removeInteraction(draw);
       setCursor(map, false);
     };
