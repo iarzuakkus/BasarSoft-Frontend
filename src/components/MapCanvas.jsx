@@ -17,6 +17,9 @@ import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx";
 import ShapeMenu from "./ui/ShapeMenu.jsx";
 import GeometryList from "./GeometryList.jsx";
 
+import { createHighlightLayer, createHighlightSource } from "./map/highlightLayer.js";
+import { addHighlight } from "./map/highlightUtils.js";
+
 export default function MapCanvas({
   type,
   items: itemsProp,
@@ -31,31 +34,26 @@ export default function MapCanvas({
   const dataSourceRef = useRef(new VectorSource());
   const sketchSourceRef = useRef(new VectorSource());
 
-  // Stil mantığı layers.js'de; burada sadece layer'ları yaratıyoruz
   const dataLayerRef = useRef(createDataLayer(dataSourceRef.current));
   const sketchLayerRef = useRef(createSketchLayer(sketchSourceRef.current));
+
+  // ✅ highlight source + layer
+  const highlightSourceRef = useRef(createHighlightSource());
+  const highlightLayerRef = useRef(createHighlightLayer(highlightSourceRef.current));
 
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState("cursor");
   const [currentSketchWkt, setCurrentSketchWkt] = useState("");
   const [items, setItems] = useState(itemsProp || []);
 
-  // ShapeMenu state
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedShapes, setSelectedShapes] = useState([]);
+  const [listOpen, setListOpen] = useState(false);
 
   const drawLineRef = useRef(null);
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
 
-  // liste modal state
-  const [listOpen, setListOpen] = useState(false);
-
-  // int -> string map
-  const typeMap = {
-    1: "POINT",
-    2: "LINESTRING",
-    3: "POLYGON"
-  };
+  const typeMap = { 1: "POINT", 2: "LINESTRING", 3: "POLYGON" };
 
   // === MAP INIT ===
   useEffect(() => {
@@ -64,7 +62,8 @@ export default function MapCanvas({
       layers: [
         new TileLayer({ source: new OSM() }),
         dataLayerRef.current,
-        sketchLayerRef.current
+        sketchLayerRef.current,
+        highlightLayerRef.current   // ✅ highlight en üstte
       ],
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: new View({
@@ -91,12 +90,10 @@ export default function MapCanvas({
 
   // dışarıdan items geldiyse sync et
   useEffect(() => {
-    if (Array.isArray(itemsProp)) {
-      setItems(itemsProp);
-    }
+    if (Array.isArray(itemsProp)) setItems(itemsProp);
   }, [itemsProp]);
 
-  // items to map (✅ seçim yoksa tüm geometri, seçim varsa filtreli)
+  // items to map (seçime göre filtrele)
   useEffect(() => {
     const map = mapRef.current;
     const src = dataSourceRef.current;
@@ -112,7 +109,7 @@ export default function MapCanvas({
           return selectedShapes.includes(t);
         });
       } else {
-        displayItems = []; // default: hepsi görünsün
+        displayItems = []; // seçim yoksa boş
       }
 
       const feats = displayItems
@@ -145,22 +142,18 @@ export default function MapCanvas({
     const el = mapRef.current?.getTargetElement?.();
     if (!el) return;
     el.style.cursor = mode === "point" ? "crosshair" : "default";
-    return () => {
-      el.style.cursor = "";
-    };
+    return () => { el.style.cursor = ""; };
   }, [mode]);
 
-  // helpers
   const handleReset = () => {
     dataSourceRef.current?.clear();
     sketchSourceRef.current?.clear();
+    highlightSourceRef.current?.clear();   // ✅ highlight da sıfırlansın
     setCurrentSketchWkt("");
     const map = mapRef.current;
     if (map) {
       const tr = transformExtent(TR_BBOX_4326, "EPSG:4326", MAP_SRID);
-      map
-        .getView()
-        .fit(tr, { padding: [20, 20, 20, 20], maxZoom: 7, duration: 250 });
+      map.getView().fit(tr, { padding: [20, 20, 20, 20], maxZoom: 7, duration: 250 });
     }
   };
 
@@ -174,21 +167,19 @@ export default function MapCanvas({
 
   useEffect(() => {
     if (typeof onFinishSketch === "function") {
-      onFinishSketch(() => {
-        drawLineRef.current?.finish?.();
-      });
+      onFinishSketch(() => { drawLineRef.current?.finish?.(); });
     }
   }, [onFinishSketch]);
 
-  // shape seçme toggle
   const toggleShape = (shape) => {
     setSelectedShapes((prev) =>
       prev.includes(shape) ? prev.filter((s) => s !== shape) : [...prev, shape]
     );
   };
 
-  // göz ikonundan zoom için
+  // göz ikonundan zoom + highlight
   const handleZoom = (geom) => {
+    console.log("zoom calisti", geom);
     const map = mapRef.current;
     if (!map) return;
     const format = new WKT();
@@ -197,8 +188,12 @@ export default function MapCanvas({
         dataProjection: "EPSG:4326",
         featureProjection: map.getView().getProjection()
       });
+
       const extent = feature.getGeometry().getExtent();
       map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 800 });
+
+      // highlight pin(ler)
+      addHighlight(feature, highlightSourceRef.current);
     } catch (e) {
       console.error("zoom error:", e);
     }
@@ -210,11 +205,7 @@ export default function MapCanvas({
         <div ref={slotRef} className="ol-map-slot" />
 
         {/* Sol alt: Get List */}
-        <button
-          className="map-fab list"
-          type="button"
-          onClick={() => setListOpen(true)}
-        >
+        <button className="map-fab list" type="button" onClick={() => setListOpen(true)}>
           Get List
         </button>
 
@@ -225,7 +216,6 @@ export default function MapCanvas({
             selected={selectedShapes}
             onToggle={toggleShape}
           />
-
           <button
             className="map-fab"
             type="button"
@@ -233,7 +223,6 @@ export default function MapCanvas({
               if (!menuOpen) {
                 setMenuOpen(true);
               } else {
-                // sadece seçili tipleri gönder; seçim yoksa boş dizi
                 let filtered = [];
                 if (selectedShapes.length > 0) {
                   filtered = items.filter((it) => {
@@ -271,7 +260,6 @@ export default function MapCanvas({
           />
         )}
 
-        {/* liste modalı */}
         {listOpen && (
           <GeometryList
             items={items}
