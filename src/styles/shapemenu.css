@@ -1,0 +1,42 @@
+/* Sağ alt grup */
+.map-fab-group {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  display: flex;
+  align-items: flex-end; /* Get All sabit, menü onunla hizalı */
+}
+
+/* Menü dikey (üst üste) */
+.shape-menu {
+  position: absolute;
+  bottom: 70px;     /* Get All'un üstünden başlar */
+  right: 0;
+  display: flex;
+  flex-direction: column;   /* 👈 butonlar üst üste */
+  gap: 10px;
+  align-items: center;
+}
+
+/* Butonlar */
+.shape-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.shape-btn:hover {
+  transform: scale(1.05);
+  background: #f9fafb;
+}
+
+.shape-btn.selected {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
+}

@@ -1,5 +1,5 @@
 /* === Map Viewport: çerçeve burada, butonlar dışarıda === */
-.map-viewport{
+.map-viewport {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -11,15 +11,15 @@
 }
 
 /* OpenLayers slot */
-.ol-map-slot{ position: absolute; inset: 0; }
-
-/* === Floating Action Buttons (FABs) === */
-.map-fab{
+.ol-map-slot {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  inset: 0;
+}
+/* === Floating Action Buttons (FABs) === */
+/* FAB genel stil */
+.map-fab {
   height: 52px;
-  min-width: 150px;
+  width: 180px;          /* 👈 sabit genişlik */
   border-radius: 999px;
   border: 3px solid var(--cyan);
   background: #fff;
@@ -27,19 +27,32 @@
   font-weight: 900;
   font-size: 15px;
   cursor: pointer;
-  box-shadow: 0 10px 26px rgba(0,0,0,.12);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .12);
   transition: transform .08s, box-shadow .12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.map-fab:hover{ transform: translateY(-1px); box-shadow: 0 14px 32px rgba(0,0,0,.16); }
 
-/* sol-alt "Get List" */
-.map-fab.list{ left:18px; right:auto; }
+.map-fab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, .16);
+}
 
-/* (Not) map.css içinde .map-controls TANIMI YOK — çakışmayı önlemek için
-   kontrollerin tüm stilleri map-controls.css'te. */
+/* Sol alt (Get List) */
+.map-fab.list {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+}
 
-/* OpenLayers zoom butonlarının harita içinde kalması için istersen: */
-.ol-zoom{
-  top: 10px !important;
-  left: 10px !important;   /* buton kolonu ile çakışmaz */
+/* Sağ alt (Get All) */
+.map-fab-group {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;  /* menü dikey */
+  align-items: center;
+  gap: 10px;
 }
