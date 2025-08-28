@@ -7,7 +7,7 @@ import OSM from "ol/source/OSM";
 import VectorSource from "ol/source/Vector";
 import { fromLonLat, transformExtent } from "ol/proj";
 import { defaults as defaultInteractions } from "ol/interaction";
-import WKT from "ol/format/WKT";   // ✅ eklendi
+import WKT from "ol/format/WKT";
 
 import { MAP_SRID, readFeatureSmart } from "./map/WktUtils.js";
 import DrawControls from "./DrawControls.jsx";
@@ -15,7 +15,7 @@ import MapControls from "./map/MapControls.jsx";
 import { createDataLayer, createSketchLayer } from "./layers.js";
 import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx";
 import ShapeMenu from "./ui/ShapeMenu.jsx";
-import GeometryList from "./GeometryList.jsx";   // ✅ eklendi
+import GeometryList from "./GeometryList.jsx";
 
 export default function MapCanvas({
   type,
@@ -31,6 +31,7 @@ export default function MapCanvas({
   const dataSourceRef = useRef(new VectorSource());
   const sketchSourceRef = useRef(new VectorSource());
 
+  // Stil mantığı layers.js'de; burada sadece layer'ları yaratıyoruz
   const dataLayerRef = useRef(createDataLayer(dataSourceRef.current));
   const sketchLayerRef = useRef(createSketchLayer(sketchSourceRef.current));
 
@@ -46,10 +47,10 @@ export default function MapCanvas({
   const drawLineRef = useRef(null);
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
 
-  // ✅ liste modal state
+  // liste modal state
   const [listOpen, setListOpen] = useState(false);
 
-  // ✅ int -> string map
+  // int -> string map
   const typeMap = {
     1: "POINT",
     2: "LINESTRING",
@@ -95,7 +96,7 @@ export default function MapCanvas({
     }
   }, [itemsProp]);
 
-  // items to map (✅ sadece seçili şekiller görünsün)
+  // items to map (✅ seçim yoksa tüm geometri, seçim varsa filtreli)
   useEffect(() => {
     const map = mapRef.current;
     const src = dataSourceRef.current;
@@ -104,13 +105,14 @@ export default function MapCanvas({
 
     if (Array.isArray(items) && items.length) {
       let displayItems = [];
+
       if (selectedShapes.length > 0) {
-        displayItems = items.filter(it => {
+        displayItems = items.filter((it) => {
           const t = typeMap[it.type] || "";
           return selectedShapes.includes(t);
         });
       } else {
-        displayItems = items;
+        displayItems = []; // default: hepsi görünsün
       }
 
       const feats = displayItems
@@ -132,7 +134,7 @@ export default function MapCanvas({
     }
   }, [items, selectedShapes]);
 
-  // reset on type change
+  // reset on type/mode change
   useEffect(() => {
     if (!ready) return;
     sketchSourceRef.current?.clear();
@@ -185,7 +187,7 @@ export default function MapCanvas({
     );
   };
 
-  // ✅ göz ikonundan zoom için
+  // göz ikonundan zoom için
   const handleZoom = (geom) => {
     const map = mapRef.current;
     if (!map) return;
@@ -193,7 +195,7 @@ export default function MapCanvas({
     try {
       const feature = format.readFeature(geom.wkt, {
         dataProjection: "EPSG:4326",
-        featureProjection: map.getView().getProjection(),
+        featureProjection: map.getView().getProjection()
       });
       const extent = feature.getGeometry().getExtent();
       map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 800 });
@@ -211,7 +213,7 @@ export default function MapCanvas({
         <button
           className="map-fab list"
           type="button"
-          onClick={() => setListOpen(true)}   // ✅ liste açılır
+          onClick={() => setListOpen(true)}
         >
           Get List
         </button>
@@ -231,16 +233,14 @@ export default function MapCanvas({
               if (!menuOpen) {
                 setMenuOpen(true);
               } else {
-                let filtered = items;
+                // sadece seçili tipleri gönder; seçim yoksa boş dizi
+                let filtered = [];
                 if (selectedShapes.length > 0) {
-                  filtered = items.filter(it => {
+                  filtered = items.filter((it) => {
                     const t = typeMap[it.type] || "";
                     return selectedShapes.includes(t);
                   });
-                } else {
-                  filtered = [];
                 }
-                console.log("Get All with filtered:", filtered);
                 onGetAll(filtered);
                 setMenuOpen(false);
               }
@@ -271,7 +271,7 @@ export default function MapCanvas({
           />
         )}
 
-        {/* ✅ liste modalı */}
+        {/* liste modalı */}
         {listOpen && (
           <GeometryList
             items={items}
