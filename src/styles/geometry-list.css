@@ -1,0 +1,117 @@
+/* geometry-list.css */
+
+/* ==== modal alanı: 16:9 sabit boyut, ortalı ==== */
+.list-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;              /* ekranın %70’i */
+  aspect-ratio: 16 / 9;    /* 16:9 oran */
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.2);
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  z-index: 2000;
+}
+
+/* başlık satırı: solda başlık, sağda çarpı */
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;  /* 👈 başlık solda, çarpı sağda */
+  margin-bottom: 6px;
+}
+
+/* çarpı butonu */
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: #475569;      /* normalde gri */
+  padding: 2px 4px;
+}
+.close-btn:hover {
+  color: #ef4444;      /* sadece renk kırmızı olsun */
+}
+
+
+.list-title {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #e5eef5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* tablo */
+.geo-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.geo-table th, .geo-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef2f7;
+  text-align: left;
+}
+.geo-table th {
+  position: sticky;
+  top: 0;
+  background: #f8fbff;
+  z-index: 1;
+  font-weight: 800;
+}
+.geo-table td.wkt {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color: #475569;
+}
+.geo-table td.muted, .muted {
+  color:#6b7280;
+  text-align:center;
+  padding: 24px 12px;
+}
+
+/* ==== search input ==== */
+.geometry-search {
+  width: 100%;
+  padding: 8px 12px;
+  margin: 4px 0 10px;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+.geometry-search:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(0,180,255,.2);
+}
+
+/* ==== zoom buton ==== */
+.zoom-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background .12s, color .12s;
+}
+.zoom-btn:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}

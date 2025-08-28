@@ -7,7 +7,7 @@ import { getGeometryById, updateGeometry, deleteGeometry } from "../../api/geome
 import PopupOverlay from "./PopupOverlay";
 import GeometryInfoPopup from "./GeometryInfoPopup";
 import "../../styles/popup.css";
-import EyeIcon from "../ui/EyeIcon"; // 👁️ icon import
+import EyeIcon from "../ui/EyeIcon"; 
 
 const wktFormat = new WKT();
 const PIXEL_TOLERANCE = 10; // px

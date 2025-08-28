@@ -7,6 +7,7 @@ import OSM from "ol/source/OSM";
 import VectorSource from "ol/source/Vector";
 import { fromLonLat, transformExtent } from "ol/proj";
 import { defaults as defaultInteractions } from "ol/interaction";
+import WKT from "ol/format/WKT";   // ✅ eklendi
 
 import { MAP_SRID, readFeatureSmart } from "./map/WktUtils.js";
 import DrawControls from "./DrawControls.jsx";
@@ -14,6 +15,7 @@ import MapControls from "./map/MapControls.jsx";
 import { createDataLayer, createSketchLayer } from "./layers.js";
 import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx";
 import ShapeMenu from "./ui/ShapeMenu.jsx";
+import GeometryList from "./GeometryList.jsx";   // ✅ eklendi
 
 export default function MapCanvas({
   type,
@@ -43,6 +45,9 @@ export default function MapCanvas({
 
   const drawLineRef = useRef(null);
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
+
+  // ✅ liste modal state
+  const [listOpen, setListOpen] = useState(false);
 
   // ✅ int -> string map
   const typeMap = {
@@ -104,6 +109,8 @@ export default function MapCanvas({
           const t = typeMap[it.type] || "";
           return selectedShapes.includes(t);
         });
+      } else {
+        displayItems = items;
       }
 
       const feats = displayItems
@@ -123,7 +130,7 @@ export default function MapCanvas({
         }
       }
     }
-  }, [items, selectedShapes]); // ✅ selectedShapes eklendi
+  }, [items, selectedShapes]);
 
   // reset on type change
   useEffect(() => {
@@ -178,6 +185,23 @@ export default function MapCanvas({
     );
   };
 
+  // ✅ göz ikonundan zoom için
+  const handleZoom = (geom) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const format = new WKT();
+    try {
+      const feature = format.readFeature(geom.wkt, {
+        dataProjection: "EPSG:4326",
+        featureProjection: map.getView().getProjection(),
+      });
+      const extent = feature.getGeometry().getExtent();
+      map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 800 });
+    } catch (e) {
+      console.error("zoom error:", e);
+    }
+  };
+
   return (
     <div className="map-canvas-wrapper">
       <div className="map-viewport">
@@ -187,14 +211,13 @@ export default function MapCanvas({
         <button
           className="map-fab list"
           type="button"
-          onClick={onOpenList}
+          onClick={() => setListOpen(true)}   // ✅ liste açılır
         >
           Get List
         </button>
 
         {/* Sağ alt: Get All */}
         <div className="map-fab-group">
-          {/* Menü */}
           <ShapeMenu
             open={menuOpen}
             selected={selectedShapes}
@@ -215,7 +238,7 @@ export default function MapCanvas({
                     return selectedShapes.includes(t);
                   });
                 } else {
-                  filtered = []; // ✅ hiçbir şey seçili değilse boş liste
+                  filtered = [];
                 }
                 console.log("Get All with filtered:", filtered);
                 onGetAll(filtered);
@@ -245,6 +268,16 @@ export default function MapCanvas({
             items={items}
             setItems={setItems}
             mode={mode}
+          />
+        )}
+
+        {/* ✅ liste modalı */}
+        {listOpen && (
+          <GeometryList
+            items={items}
+            loading={false}
+            onZoom={handleZoom}
+            onClose={() => setListOpen(false)}
           />
         )}
       </div>
