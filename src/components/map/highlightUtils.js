@@ -10,7 +10,7 @@ import PinRed from "../../assets/icons/PinRed.jsx"; // JSX pin bileşeni
 // JSX → SVG string → data-uri
 function getPinSvg(size = 48, color = "#ef4444") {
   const svgString = ReactDOMServer.renderToStaticMarkup(
-    React.createElement(PinRed, { size, color })   // ✅ JSX yerine createElement
+    React.createElement(PinRed, { size, color }) // JSX yerine createElement
   );
   return "data:image/svg+xml;utf8," + encodeURIComponent(svgString);
 }
@@ -45,11 +45,12 @@ export function addHighlight(feature, highlightSource) {
   if (geomType === "LineString") {
     const coords = feature.getGeometry().getCoordinates();
     if (coords.length >= 2) {
+      // ilk nokta
       const start = new Feature(new Point(coords[0]));
       start.setStyle(
         new Style({
           image: new Icon({
-            src: getPinSvg(40, "#3b82f6"),
+            src: getPinSvg(40, "#ef4444"), // kırmızı pin
             anchor: [0.5, 1],
             anchorXUnits: "fraction",
             anchorYUnits: "fraction",
@@ -58,11 +59,12 @@ export function addHighlight(feature, highlightSource) {
         })
       );
 
+      // son nokta
       const end = new Feature(new Point(coords[coords.length - 1]));
       end.setStyle(
         new Style({
           image: new Icon({
-            src: getPinSvg(40, "#3b82f6"),
+            src: getPinSvg(40, "#ef4444"), // kırmızı pin
             anchor: [0.5, 1],
             anchorXUnits: "fraction",
             anchorYUnits: "fraction",
@@ -83,7 +85,7 @@ export function addHighlight(feature, highlightSource) {
     f.setStyle(
       new Style({
         image: new Icon({
-          src: getPinSvg(48, "#a855f7"),
+          src: getPinSvg(48, "#ef4444"), // kırmızı pin
           anchor: [0.5, 1],
           anchorXUnits: "fraction",
           anchorYUnits: "fraction",

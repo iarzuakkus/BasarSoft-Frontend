@@ -1,7 +1,9 @@
+// src/components/map/GeometryInfoPopup.jsx
 import React, { useState } from "react";
 import "../../styles/popup.css";
+import EyeIcon from "../ui/EyeIcon.jsx"; // 👁 ikon bileşeni
 
-export default function GeometryInfoPopup({ feature, onUpdate, onDelete }) {
+export default function GeometryInfoPopup({ feature, onUpdate, onDelete, onZoom }) {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
     name: feature?.name || "",
@@ -61,15 +63,40 @@ export default function GeometryInfoPopup({ feature, onUpdate, onDelete }) {
       ) : (
         <table className="info-table">
           <tbody>
-            <tr><th>Name</th><td>{form.name}</td></tr>
-            <tr><th>WKT</th><td className="wkt-cell">{form.wkt}</td></tr>
+            <tr>
+              <th>Name</th>
+              <td>{form.name}</td>
+              <td>
+                {onZoom && (
+                  <button
+                    className="zoom-btn"
+                    onClick={() => onZoom(feature)}
+                  >
+                    <EyeIcon size={16} />
+                  </button>
+                )}
+              </td>
+            </tr>
+            <tr>
+              <th>WKT</th>
+              <td className="wkt-cell">{form.wkt}</td>
+              <td>
+                {onZoom && (
+                  <button
+                    className="zoom-btn"
+                    onClick={() => onZoom(feature)}
+                  >
+                    <EyeIcon size={16} />
+                  </button>
+                )}
+              </td>
+            </tr>
             <tr><th>Type</th><td>{form.type}</td></tr>
             {feature?.hdms && <tr><th>HDMS</th><td>{feature.hdms}</td></tr>}
           </tbody>
         </table>
       )}
 
-      {/* ✅ Polygon/Line metrics tekrar eklendi */}
       {feature?.metrics && (
         <div className="info-section">
           {feature.metrics}

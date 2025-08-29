@@ -17,8 +17,10 @@ import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx";
 import ShapeMenu from "./ui/ShapeMenu.jsx";
 import GeometryList from "./GeometryList.jsx";
 
+// ✅ highlight için sadece buradan import et
 import { createHighlightLayer, createHighlightSource } from "./map/highlightLayer.js";
 import { addHighlight } from "./map/highlightUtils.js";
+
 
 export default function MapCanvas({
   type,
@@ -257,6 +259,7 @@ export default function MapCanvas({
             items={items}
             setItems={setItems}
             mode={mode}
+            highlightSource={highlightSourceRef.current}
           />
         )}
 

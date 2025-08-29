@@ -3,11 +3,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { toStringHDMS } from "ol/coordinate";
 import { WKT } from "ol/format";
 import Overlay from "ol/Overlay";
+import { Feature } from "ol";
 import { getGeometryById, updateGeometry, deleteGeometry } from "../../api/geometryApi";
 import PopupOverlay from "./PopupOverlay";
 import GeometryInfoPopup from "./GeometryInfoPopup";
 import "../../styles/popup.css";
 import EyeIcon from "../ui/EyeIcon"; 
+import { addHighlight } from "./highlightUtils";   // ✅ highlight util
 
 const wktFormat = new WKT();
 const PIXEL_TOLERANCE = 10; // px
@@ -30,7 +32,7 @@ function safeFormatLength(geom) {
   }
 }
 
-export default function HoverAndClickPopup({ map, items, setItems, mode }) {
+export default function HoverAndClickPopup({ map, items, setItems, mode, highlightSource }) {
   const hoverRef = useRef(null);
   const hoverOverlayRef = useRef(null);
   const [hoverText, setHoverText] = useState(null);
@@ -90,19 +92,16 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
         const res = map.getView().getResolution() || 1;
         const tolMU = PIXEL_TOLERANCE * res;
 
-        // 1. Önce Point
         for (const it of geometries.filter((g) => g.geometry.getType() === "Point")) {
           const p = it.geometry.getCoordinates();
           if (muDist(p, mouseCoord) <= tolMU) return { item: it, hitCoord: p };
         }
 
-        // 2. Sonra LineString
         for (const it of geometries.filter((g) => g.geometry.getType() === "LineString")) {
           const cp = it.geometry.getClosestPoint(mouseCoord);
           if (muDist(cp, mouseCoord) <= tolMU) return { item: it, hitCoord: cp };
         }
 
-        // 3. En son Polygon → küçükten büyüğe sırala
         const polys = geometries
           .filter((g) => g.geometry.getType() === "Polygon")
           .sort((a, b) => a.geometry.getArea() - b.geometry.getArea());
@@ -117,7 +116,6 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
             return { item: it, hitCoord: cp };
           }
         }
-
         return null;
       } catch (e) {
         console.warn("findGeometryAt:", e);
@@ -126,7 +124,7 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
     };
 
     const onMove = (evt) => {
-      if (popupOpen || mode !== "cursor") return; // sadece cursor modunda hover çalışsın
+      if (popupOpen || mode !== "cursor") return;
       const found = findGeometryAt(evt);
       if (found) {
         setHoverText(found.item.name ?? "(no name)");
@@ -138,7 +136,7 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
     };
 
     const onClick = async (evt) => {
-      if (mode !== "cursor") return; // çizim modunda click çalışmasın
+      if (mode !== "cursor") return;
 
       if (popupOpen) {
         const hit = findGeometryAt(evt);
@@ -219,17 +217,13 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
                   </h5>
                   <ul className="info-list">
                     {insidePoints.map((p) => (
-                      <li
-                        key={`pt-${p.id || p.name}`}
-                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                      >
-                        <span>
-                          {p.name} <span className="badge">Point</span>
-                        </span>
+                      <li key={`pt-${p.id || p.name}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>{p.name} <span className="badge">Point</span></span>
                         <button
                           className="eye-btn"
                           onClick={() => {
                             map.getView().fit(p.geometry.getExtent(), { maxZoom: 14, duration: 500 });
+                            addHighlight(new Feature(p.geometry), highlightSource);  {/* ✅ highlight */}
                           }}
                         >
                           <EyeIcon size={16} />
@@ -243,22 +237,17 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
               {intersectingLines.length > 0 && (
                 <>
                   <h5>
-                    Intersecting LineStrings{" "}
-                    <span className="badge">{intersectingLines.length}</span>
+                    Intersecting LineStrings <span className="badge">{intersectingLines.length}</span>
                   </h5>
                   <ul className="info-list">
                     {intersectingLines.map((l) => (
-                      <li
-                        key={`ln-${l.id || l.name}`}
-                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                      >
-                        <span>
-                          {l.name} <span className="badge">LineString</span>
-                        </span>
+                      <li key={`ln-${l.id || l.name}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>{l.name} <span className="badge">LineString</span></span>
                         <button
                           className="eye-btn"
                           onClick={() => {
                             map.getView().fit(l.geometry.getExtent(), { maxZoom: 14, duration: 500 });
+                            addHighlight(new Feature(l.geometry), highlightSource);  {/* ✅ highlight */}
                           }}
                         >
                           <EyeIcon size={16} />
@@ -267,12 +256,6 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
                     ))}
                   </ul>
                 </>
-              )}
-
-              {insidePoints.length === 0 && intersectingLines.length === 0 && (
-                <div style={{ color: "#6b7280", fontSize: 13 }}>
-                  No related points or lines found for this polygon.
-                </div>
               )}
             </div>
           );
@@ -283,8 +266,7 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
           lineSection = (
             <div className="info-section">
               <h5>
-                LineString Metrics{" "}
-                <span className="badge">Length: {safeFormatLength(geom)}</span>
+                LineString Metrics <span className="badge">Length: {safeFormatLength(geom)}</span>
               </h5>
             </div>
           );
@@ -336,7 +318,7 @@ export default function HoverAndClickPopup({ map, items, setItems, mode }) {
       map.un("pointermove", onMove);
       map.un("click", onClick);
     };
-  }, [map, items, popupOpen, setItems, mode]);
+  }, [map, items, popupOpen, setItems, mode, highlightSource]);
 
   return (
     <>
