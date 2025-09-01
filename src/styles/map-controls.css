@@ -14,13 +14,24 @@
 .control-btn:hover{ transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.12); }
 .control-btn:active{ transform: translateY(0); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
 .control-btn:focus-visible{ outline: 0; box-shadow: 0 0 0 4px var(--ring), 0 8px 18px rgba(0,0,0,.12); }
-.control-btn svg{ width:22px; height:22px; color:#111; }  /* stroke=currentColor ikonlar */
+.control-btn svg,
+.control-btn img{ width:22px; height:22px; color:#111; }  /* hem svg hem img için */
 
 /* Tema varyantları */
 .control-btn.orange{ border-color:#ff8f4c; background:#fff7f0; }
-.control-btn.orange svg{ color:#ff8f4c; }
+.control-btn.orange svg, .control-btn.orange img{ color:#ff8f4c; }
+
 .control-btn.cyan{ border-color:#25c4dd; background:#effcff; }
-.control-btn.cyan svg{ color:#25c4dd; }
+.control-btn.cyan svg, .control-btn.cyan img{ color:#25c4dd; }
+
+.control-btn.purple{ border-color:#9b5de5; background:#f8f3ff; }
+.control-btn.purple svg, .control-btn.purple img{ color:#9b5de5; }
+
+.control-btn.yellow{ border-color:#f9c74f; background:#fffbea; }
+.control-btn.yellow svg, .control-btn.yellow img{ color:#f9c74f; }
+
+.control-btn.green{ border-color:#06d6a0; background:#f0fffa; }
+.control-btn.green svg, .control-btn.green img{ color:#06d6a0; }
 
 /* Toggle aktif/pasif vurgusu */
 .control-btn.cyan[data-active="point"]{
@@ -29,6 +40,24 @@
   transform:translateY(-1px);
 }
 .control-btn.cyan[data-active="cursor"]{ background:#effcff; }
+
+.control-btn.purple[data-active="true"]{
+  background:#ede3ff;
+  box-shadow:0 10px 24px rgba(155,93,229,.25);
+  transform:translateY(-1px);
+}
+.control-btn.yellow[data-active="true"]{
+  background:#fff3cc;
+  box-shadow:0 10px 24px rgba(249,199,79,.25);
+  transform:translateY(-1px);
+}
+
+/* Save pasifken gri */
+.control-btn.green:disabled{
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 
 /* === DIŞARIDA kullanım (haritanın solunda dikey kolon) === */
 .map-controls.outside-col{
@@ -61,7 +90,6 @@
 @media (max-width: 768px){
   :root{ --controls-top: 72px; --controls-left: 12px; }
 }
-
 
 .map-canvas-wrapper{ position: relative; }
 

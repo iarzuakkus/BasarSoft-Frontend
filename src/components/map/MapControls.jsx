@@ -2,6 +2,11 @@
 import React from "react";
 import "../../styles/map-controls.css";
 
+// import custom icons (normal import)
+import MoveShapeIcon from "../../assets/icons/MoveShape.svg";
+import MoveVertexIcon from "../../assets/icons/MoveVertex.svg";
+import SaveIcon from "../../assets/icons/Save.svg";
+
 /* ---- Minimal, crisp SVG icons (stroke = currentColor) ---- */
 function IconRotateLeft(props) {
   return (
@@ -35,18 +40,24 @@ function IconPoint(props) {
 
 /**
  * Props:
- * - mode: "cursor" | "point"
- * - onToggleMode: () => void
+ * - mode: "cursor" | "point" | "move-shape" | "move-vertex"
+ * - onToggleMode: (mode) => void
  * - onReset: () => void
+ * - onSave: () => void
+ * - canSave: boolean (save aktif/pasif durumu)
  * - className?: string
  */
 export default function MapControls({
   mode = "cursor",
   onToggleMode,
   onReset,
+  onSave,
+  canSave = false,
   className = "",
 }) {
   const isPoint = mode === "point";
+  const isMoveShape = mode === "move-shape";
+  const isMoveVertex = mode === "move-vertex";
 
   return (
     <div className={`map-controls ${className}`} data-mode={mode}>
@@ -64,14 +75,49 @@ export default function MapControls({
       {/* Mod: Cursor <-> Point */}
       <button
         type="button"
-        className={`control-btn cyan`}
+        className="control-btn cyan"
         title={isPoint ? "Nokta Seçme Aktif" : "Fare (Pan) Modu Aktif"}
-        onClick={onToggleMode}
+        onClick={() => onToggleMode(isPoint ? "cursor" : "point")}
         aria-label="Mod Değiştir"
-        aria-pressed={isPoint}
-        data-active={isPoint ? "point" : "cursor"}
+        data-active={isPoint}
       >
         {isPoint ? <IconPoint /> : <IconCursor />}
+      </button>
+
+      {/* Move Shape */}
+      <button
+        type="button"
+        className="control-btn purple"
+        title="Şekil Taşı (Move Shape)"
+        onClick={() => onToggleMode("move-shape")}
+        aria-label="Şekil Taşı"
+        data-active={isMoveShape}
+      >
+        <img src={MoveShapeIcon} alt="Move Shape" width={20} height={20} />
+      </button>
+
+      {/* Move Vertex */}
+      <button
+        type="button"
+        className="control-btn yellow"
+        title="Vertex Taşı (Move Vertex)"
+        onClick={() => onToggleMode("move-vertex")}
+        aria-label="Vertex Taşı"
+        data-active={isMoveVertex}
+      >
+        <img src={MoveVertexIcon} alt="Move Vertex" width={20} height={20} />
+      </button>
+
+      {/* Save */}
+      <button
+        type="button"
+        className="control-btn green"
+        title="Değişiklikleri Kaydet"
+        onClick={onSave}
+        aria-label="Kaydet"
+        disabled={!canSave}
+      >
+        <img src={SaveIcon} alt="Save" width={20} height={20} />
       </button>
     </div>
   );

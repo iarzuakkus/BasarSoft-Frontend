@@ -1,3 +1,4 @@
+// src/components/MapCanvas.jsx
 import React, { useEffect, useRef, useState } from "react";
 import "ol/ol.css";
 import Map from "ol/Map";
@@ -6,7 +7,7 @@ import TileLayer from "ol/layer/Tile";
 import OSM from "ol/source/OSM";
 import VectorSource from "ol/source/Vector";
 import { fromLonLat, transformExtent } from "ol/proj";
-import { defaults as defaultInteractions } from "ol/interaction";
+import { defaults as defaultInteractions, Translate, Modify } from "ol/interaction";
 import WKT from "ol/format/WKT";
 
 import { MAP_SRID, readFeatureSmart } from "./map/WktUtils.js";
@@ -17,10 +18,10 @@ import HoverAndClickPopup from "./map/HoverAndClickPopup.jsx";
 import ShapeMenu from "./ui/ShapeMenu.jsx";
 import GeometryList from "./GeometryList.jsx";
 
-// ✅ highlight için sadece buradan import et
 import { createHighlightLayer, createHighlightSource } from "./map/highlightLayer.js";
 import { addHighlight } from "./map/highlightUtils.js";
 
+import { updateGeometry } from "../api/geometryApi.js";
 
 export default function MapCanvas({
   type,
@@ -39,22 +40,25 @@ export default function MapCanvas({
   const dataLayerRef = useRef(createDataLayer(dataSourceRef.current));
   const sketchLayerRef = useRef(createSketchLayer(sketchSourceRef.current));
 
-  // ✅ highlight source + layer
   const highlightSourceRef = useRef(createHighlightSource());
   const highlightLayerRef = useRef(createHighlightLayer(highlightSourceRef.current));
 
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState("cursor");
   const [currentSketchWkt, setCurrentSketchWkt] = useState("");
+  const [lastSavedWkt, setLastSavedWkt] = useState("");
   const [items, setItems] = useState(itemsProp || []);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedShapes, setSelectedShapes] = useState([]);
   const [listOpen, setListOpen] = useState(false);
 
+  const [canSave, setCanSave] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+
   const drawLineRef = useRef(null);
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
-
   const typeMap = { 1: "POINT", 2: "LINESTRING", 3: "POLYGON" };
 
   // === MAP INIT ===
@@ -65,7 +69,7 @@ export default function MapCanvas({
         new TileLayer({ source: new OSM() }),
         dataLayerRef.current,
         sketchLayerRef.current,
-        highlightLayerRef.current   // ✅ highlight en üstte
+        highlightLayerRef.current
       ],
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: new View({
@@ -90,12 +94,12 @@ export default function MapCanvas({
     };
   }, []);
 
-  // dışarıdan items geldiyse sync et
+  // dışarıdan items sync et
   useEffect(() => {
     if (Array.isArray(itemsProp)) setItems(itemsProp);
   }, [itemsProp]);
 
-  // items to map (seçime göre filtrele)
+  // items to map
   useEffect(() => {
     const map = mapRef.current;
     const src = dataSourceRef.current;
@@ -104,22 +108,32 @@ export default function MapCanvas({
 
     if (Array.isArray(items) && items.length) {
       let displayItems = [];
-
       if (selectedShapes.length > 0) {
         displayItems = items.filter((it) => {
           const t = typeMap[it.type] || "";
           return selectedShapes.includes(t);
         });
       } else {
-        displayItems = []; // seçim yoksa boş
+        displayItems = [];
       }
 
+      // FEAT'lere item id/name/type bağla (kritik!)
       const feats = displayItems
-        .map((g) => (g?.wkt ? readFeatureSmart(g.wkt) : null))
+        .map((g) => {
+          if (!g?.wkt) return null;
+          const f = readFeatureSmart(g.wkt);
+          if (!f) return null;
+          try { f.setId?.(g.id); } catch {}
+          f.set && f.set("itemId", g.id);
+          f.set && f.set("itemName", g.name);
+          f.set && f.set("itemType", g.type);
+          return f;
+        })
         .filter(Boolean);
 
       if (feats.length) src.addFeatures(feats);
 
+      // (mevcut zoom davranışını bozmadım)
       if (displayItems.length > 0) {
         const extent = src.getExtent();
         if (extent && isFinite(extent[0])) {
@@ -133,45 +147,145 @@ export default function MapCanvas({
     }
   }, [items, selectedShapes]);
 
-  // reset on type/mode change
-  useEffect(() => {
-    if (!ready) return;
-    sketchSourceRef.current?.clear();
-    setCurrentSketchWkt("");
-  }, [type, mode, ready]);
-
-  useEffect(() => {
-    const el = mapRef.current?.getTargetElement?.();
-    if (!el) return;
-    el.style.cursor = mode === "point" ? "crosshair" : "default";
-    return () => { el.style.cursor = ""; };
-  }, [mode]);
-
   const handleReset = () => {
     dataSourceRef.current?.clear();
     sketchSourceRef.current?.clear();
-    highlightSourceRef.current?.clear();   // ✅ highlight da sıfırlansın
+    highlightSourceRef.current?.clear();
     setCurrentSketchWkt("");
-    const map = mapRef.current;
-    if (map) {
-      const tr = transformExtent(TR_BBOX_4326, "EPSG:4326", MAP_SRID);
-      map.getView().fit(tr, { padding: [20, 20, 20, 20], maxZoom: 7, duration: 250 });
+    setLastSavedWkt("");
+    setCanSave(false);
+    setHistory([]);
+    setSelectedItem(null);
+  };
+
+  const handleToggleMode = (newMode) => {
+    if (mode === newMode) {
+      setMode("cursor");
+      setCurrentSketchWkt(lastSavedWkt);
+      setCanSave(false);
+      setHistory([]);
+    } else {
+      setMode(newMode || (mode === "cursor" ? "point" : "cursor"));
     }
   };
 
-  const handleToggleMode = () =>
-    setMode((m) => (m === "cursor" ? "point" : "cursor"));
-
+  // çizim veya move sırasında gelen wkt
   const handleSketchWkt = (wkt) => {
     setCurrentSketchWkt(wkt);
     onSketchWkt?.(wkt);
+
+    if (mode === "move-shape" || mode === "move-vertex") {
+      setHistory((prev) => [...prev, currentSketchWkt]);
+      setCanSave(true);
+
+      // sadece mevcut seçili item'in wkt'sini güncelle (id'yi koru)
+      setSelectedItem((prev) => (prev ? { ...prev, wkt } : prev));
+    }
   };
 
-  useEffect(() => {
-    if (typeof onFinishSketch === "function") {
-      onFinishSketch(() => { drawLineRef.current?.finish?.(); });
+  // SAVE → sadece WKT günceller (name/type değişmeden)
+  const handleSave = async () => {
+    if (!currentSketchWkt || !selectedItem) {
+      console.log("Save iptal → eksik veri", { currentSketchWkt, selectedItem });
+      return;
     }
-  }, [onFinishSketch]);
+
+    try {
+      const payload = {
+        name: selectedItem.name,
+        type: selectedItem.type,
+        wkt: currentSketchWkt
+      };
+      console.log("PUT ->", selectedItem.id, payload);
+
+      const updated = await updateGeometry(selectedItem.id, payload);
+      console.log("update result:", updated);
+
+      setItems((prev) =>
+        prev.map((it) => (it.id === selectedItem.id ? { ...it, ...updated } : it))
+      );
+      setSelectedItem((prev) =>
+        prev && prev.id === selectedItem.id ? { ...prev, ...updated } : prev
+      );
+
+      setLastSavedWkt(payload.wkt);
+      setCanSave(false);
+      setHistory([]);
+      setMode("cursor");
+    } catch (err) {
+      console.error("Save error:", err);
+    }
+  };
+
+  // === OL interaction: Translate & Modify ===
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    // eski interactionları temizle
+    map.getInteractions().forEach((i) => {
+      if (i instanceof Translate || i instanceof Modify) {
+        map.removeInteraction(i);
+      }
+    });
+
+    // ortak WKT yazım fonksiyonu
+    const writeWkt = (feat) => {
+      const fmt = new WKT();
+      return fmt.writeFeature(feat, {
+        dataProjection: "EPSG:4326",
+        featureProjection: map.getView().getProjection()
+      });
+    };
+
+    // feature -> item eşle
+    const getItemFromFeature = (feat) => {
+      const fid = feat?.getId?.();
+      const pid = feat?.get?.("itemId");
+      const id = fid ?? pid;
+      if (id == null) return null;
+      const idNum = Number(id);
+      const found = items.find((it) => Number(it.id) === idNum);
+      return found || null;
+    };
+
+    if (mode === "move-shape") {
+      const translate = new Translate({
+        features: dataLayerRef.current.getSource().getFeaturesCollection()
+      });
+      map.addInteraction(translate);
+
+      translate.on("translateend", (e) => {
+        const feat = e.features.item(0);
+        if (!feat) return;
+        const newWkt = writeWkt(feat);
+        const item = getItemFromFeature(feat);
+        // önce doğru item'i seç, sonra wkt'yi işle
+        if (item) {
+          setSelectedItem({ ...item, wkt: newWkt });
+        }
+        handleSketchWkt(newWkt);
+      });
+    }
+
+    if (mode === "move-vertex") {
+      const modify = new Modify({
+        source: dataLayerRef.current.getSource()
+      });
+      map.addInteraction(modify);
+
+      modify.on("modifyend", (e) => {
+        const feat = e.features.item(0);
+        if (!feat) return;
+        const newWkt = writeWkt(feat);
+        const item = getItemFromFeature(feat);
+        if (item) {
+          setSelectedItem({ ...item, wkt: newWkt });
+        }
+        handleSketchWkt(newWkt);
+      });
+    }
+  }, [mode, items]);
 
   const toggleShape = (shape) => {
     setSelectedShapes((prev) =>
@@ -179,9 +293,7 @@ export default function MapCanvas({
     );
   };
 
-  // göz ikonundan zoom + highlight
   const handleZoom = (geom) => {
-    console.log("zoom calisti", geom);
     const map = mapRef.current;
     if (!map) return;
     const format = new WKT();
@@ -190,12 +302,12 @@ export default function MapCanvas({
         dataProjection: "EPSG:4326",
         featureProjection: map.getView().getProjection()
       });
-
       const extent = feature.getGeometry().getExtent();
       map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 800 });
-
-      // highlight pin(ler)
       addHighlight(feature, highlightSourceRef.current);
+
+      setSelectedItem(geom);
+      setLastSavedWkt(geom.wkt);
     } catch (e) {
       console.error("zoom error:", e);
     }
@@ -206,12 +318,10 @@ export default function MapCanvas({
       <div className="map-viewport">
         <div ref={slotRef} className="ol-map-slot" />
 
-        {/* Sol alt: Get List */}
         <button className="map-fab list" type="button" onClick={() => setListOpen(true)}>
           Get List
         </button>
 
-        {/* Sağ alt: Get All */}
         <div className="map-fab-group">
           <ShapeMenu
             open={menuOpen}
@@ -247,7 +357,7 @@ export default function MapCanvas({
             mode={mode}
             map={mapRef.current}
             sketchSource={sketchSourceRef.current}
-            onWkt={handleSketchWkt}
+            onWkt={setCurrentSketchWkt /* mevcut davranışı korudum */}
             drawLineRef={drawLineRef}
           />
         )}
@@ -278,6 +388,8 @@ export default function MapCanvas({
         mode={mode}
         onToggleMode={handleToggleMode}
         onReset={handleReset}
+        onSave={handleSave}
+        canSave={canSave}
       />
     </div>
   );
