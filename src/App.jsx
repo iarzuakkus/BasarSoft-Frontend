@@ -6,8 +6,7 @@ import GeometryForm from "./components/GeometryForm.jsx";
 import GeometryList from "./components/GeometryList.jsx";
 import MapCanvas from "./components/MapCanvas.jsx";
 
-import { ToastProvider } from "./components/ToastProvider.jsx"; // ✅ yeni
-// import Toast from "./components/Toast.jsx"; // ❌ artık gerekmiyor
+import { ToastProvider } from "./components/ToastProvider.jsx";
 
 import "./styles/base.css";
 import "./styles/layout.css";
@@ -30,6 +29,11 @@ function AppInner() {
       setOpenCreate(false);
       setSketchWkt("");
       await load();
+
+      // ✅ create sonrası MapCanvas’a sketch temizlet
+      if (typeof window.finishSketch === "function") {
+        window.finishSketch();
+      }
     }
   };
 
@@ -66,6 +70,10 @@ function AppInner() {
               onGetAll={load}
               onOpenList={() => setOpenList(true)}
               onSketchWkt={(w) => setSketchWkt(w)}
+              onFinishSketch={() => {
+                // ✅ MapCanvas’tan çağrılır → App tarafında da state resetler
+                setSketchWkt("");
+              }}
             />
           </div>
         </section>

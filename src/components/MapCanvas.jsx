@@ -94,9 +94,27 @@ export default function MapCanvas({
     };
   }, []);
 
+  // ✅ Sketch temizleyici
+  const clearSketch = () => {
+    sketchSourceRef.current?.clear();
+    setCurrentSketchWkt("");
+    setLastSavedWkt("");
+    setCanSave(false);
+    setHistory([]);
+    setMode("cursor");
+    onFinishSketch?.();
+  };
+
   // dışarıdan items sync et
   useEffect(() => {
-    if (Array.isArray(itemsProp)) setItems(itemsProp);
+    if (Array.isArray(itemsProp)) {
+      setItems(itemsProp);
+
+      // yeni item eklendiğinde sketch temizle
+      if (itemsProp.length > items.length) {
+        clearSketch();
+      }
+    }
   }, [itemsProp]);
 
   // items to map
@@ -114,16 +132,17 @@ export default function MapCanvas({
           return selectedShapes.includes(t);
         });
       } else {
-        displayItems = [];
+        displayItems = items; // 👈 tüm item'ları göster
       }
 
-      // FEAT'lere item id/name/type bağla (kritik!)
       const feats = displayItems
         .map((g) => {
           if (!g?.wkt) return null;
           const f = readFeatureSmart(g.wkt);
           if (!f) return null;
-          try { f.setId?.(g.id); } catch {}
+          try {
+            f.setId?.(g.id);
+          } catch {}
           f.set && f.set("itemId", g.id);
           f.set && f.set("itemName", g.name);
           f.set && f.set("itemType", g.type);
@@ -133,7 +152,6 @@ export default function MapCanvas({
 
       if (feats.length) src.addFeatures(feats);
 
-      // (mevcut zoom davranışını bozmadım)
       if (displayItems.length > 0) {
         const extent = src.getExtent();
         if (extent && isFinite(extent[0])) {
@@ -169,7 +187,6 @@ export default function MapCanvas({
     }
   };
 
-  // çizim veya move sırasında gelen wkt
   const handleSketchWkt = (wkt) => {
     setCurrentSketchWkt(wkt);
     onSketchWkt?.(wkt);
@@ -177,18 +194,12 @@ export default function MapCanvas({
     if (mode === "move-shape" || mode === "move-vertex") {
       setHistory((prev) => [...prev, currentSketchWkt]);
       setCanSave(true);
-
-      // sadece mevcut seçili item'in wkt'sini güncelle (id'yi koru)
       setSelectedItem((prev) => (prev ? { ...prev, wkt } : prev));
     }
   };
 
-  // SAVE → sadece WKT günceller (name/type değişmeden)
   const handleSave = async () => {
-    if (!currentSketchWkt || !selectedItem) {
-      console.log("Save iptal → eksik veri", { currentSketchWkt, selectedItem });
-      return;
-    }
+    if (!currentSketchWkt || !selectedItem) return;
 
     try {
       const payload = {
@@ -196,22 +207,28 @@ export default function MapCanvas({
         type: selectedItem.type,
         wkt: currentSketchWkt
       };
-      console.log("PUT ->", selectedItem.id, payload);
 
-      const updated = await updateGeometry(selectedItem.id, payload);
-      console.log("update result:", updated);
+      const response = await updateGeometry(selectedItem.id, payload);
 
-      setItems((prev) =>
-        prev.map((it) => (it.id === selectedItem.id ? { ...it, ...updated } : it))
-      );
-      setSelectedItem((prev) =>
-        prev && prev.id === selectedItem.id ? { ...prev, ...updated } : prev
-      );
+      if (response?.success && response.data) {
+        const updated = response.data;
 
-      setLastSavedWkt(payload.wkt);
-      setCanSave(false);
-      setHistory([]);
-      setMode("cursor");
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === selectedItem.id ? { ...it, ...updated } : it
+          )
+        );
+        setSelectedItem((prev) =>
+          prev && prev.id === selectedItem.id ? { ...prev, ...updated } : prev
+        );
+
+        setLastSavedWkt(updated.wkt);
+        setCanSave(false);
+        setHistory([]);
+        setMode("cursor");
+
+        clearSketch(); // ✅ update sonrası sketch temizle
+      }
     } catch (err) {
       console.error("Save error:", err);
     }
@@ -222,14 +239,12 @@ export default function MapCanvas({
     if (!mapRef.current) return;
     const map = mapRef.current;
 
-    // eski interactionları temizle
     map.getInteractions().forEach((i) => {
       if (i instanceof Translate || i instanceof Modify) {
         map.removeInteraction(i);
       }
     });
 
-    // ortak WKT yazım fonksiyonu
     const writeWkt = (feat) => {
       const fmt = new WKT();
       return fmt.writeFeature(feat, {
@@ -238,7 +253,6 @@ export default function MapCanvas({
       });
     };
 
-    // feature -> item eşle
     const getItemFromFeature = (feat) => {
       const fid = feat?.getId?.();
       const pid = feat?.get?.("itemId");
@@ -260,7 +274,6 @@ export default function MapCanvas({
         if (!feat) return;
         const newWkt = writeWkt(feat);
         const item = getItemFromFeature(feat);
-        // önce doğru item'i seç, sonra wkt'yi işle
         if (item) {
           setSelectedItem({ ...item, wkt: newWkt });
         }
