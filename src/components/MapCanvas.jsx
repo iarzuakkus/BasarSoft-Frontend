@@ -357,7 +357,7 @@ export default function MapCanvas({
             mode={mode}
             map={mapRef.current}
             sketchSource={sketchSourceRef.current}
-            onWkt={setCurrentSketchWkt /* mevcut davranışı korudum */}
+            onWkt={handleSketchWkt}
             drawLineRef={drawLineRef}
           />
         )}
