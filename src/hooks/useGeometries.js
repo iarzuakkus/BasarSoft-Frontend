@@ -27,8 +27,8 @@ export function useGeometries() {
     setError("");
 
     try {
-      const data = await getAllGeometries();
-      const valid = Array.isArray(data) ? data : [];
+      const response = await getAllGeometries(); // { success, message, data }
+      const valid = Array.isArray(response?.data) ? response.data : [];
       setItems(valid);
 
       const source = new VectorSource();
@@ -39,13 +39,12 @@ export function useGeometries() {
 
         const feat = new Feature({
           geometry: geom,
-          id: item.id,         // ✅ doğrudan constructor'a ekledik
+          id: item.id,
           name: item.name,
           type: item.type,
           wkt: item.wkt,
         });
 
-        // Yedek amaçlı ayrıca .set ile de atanıyor
         feat.set("id", item.id);
         feat.set("name", item.name);
         feat.set("type", item.type);
@@ -68,6 +67,7 @@ export function useGeometries() {
       setLoading(false);
     }
   }, []);
+
 
   const add = useCallback(async (dto) => {
     setSaving(true);

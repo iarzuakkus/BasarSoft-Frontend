@@ -1,4 +1,6 @@
 // .env.development: VITE_API_BASE_URL=https://localhost:7294
+import { toastManager } from "../components/ToastProvider";
+
 const RAW = (import.meta.env?.VITE_API_BASE_URL ?? "").trim();
 if (!RAW) {
   console.warn("VITE_API_BASE_URL yok; geçici https://localhost:7294 kullanılacak.");
@@ -9,23 +11,37 @@ const GET_URL  = `${BASE}/api/Geometry`;
 const POST_URL = `${BASE}/api/Geometry`;
 const BY_ID_URL = (id) => `${BASE}/api/Geometry/${id}`;
 
-const unwrap = (data) => {
-  if (Array.isArray(data)) return data;
-  return data?.data ?? data?.result ?? data?.value ?? data;
-};
-
+// ✅ Backend cevabını normalize eden ve Toaster tetikleyen yardımcı
 const jsonOrThrow = async (res) => {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = data?.message || res.statusText || "İstek başarısız";
-    throw new Error(msg);
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    data = {};
   }
-  return unwrap(data);
+
+  const result = {
+    success: data?.success ?? res.ok,
+    message: data?.message || (res.ok ? "İşlem başarılı" : "İstek başarısız"),
+    data: data?.data ?? data?.result ?? data?.value ?? null,
+  };
+
+  // Toaster: her mesaj için yukarıdan göster
+  if (result.message) {
+    toastManager.show(result.message, result.success ? "success" : "error");
+  }
+
+  if (!res.ok || result.success === false) {
+    throw new Error(result.message);
+  }
+
+  return result;
 };
 
+// === API Fonksiyonları ===
 export async function getAllGeometries() {
   const res = await fetch(GET_URL, { method: "GET" });
-  return jsonOrThrow(res);
+  return jsonOrThrow(res); // { success, message, data }
 }
 
 export async function getGeometryById(id) {
