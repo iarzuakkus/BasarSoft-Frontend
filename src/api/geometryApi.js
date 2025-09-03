@@ -8,9 +8,10 @@ if (!RAW) {
 }
 const BASE = (RAW || "https://localhost:7294").replace(/\/+$/, "");
 
-const GET_URL  = `${BASE}/api/Geometry`;
-const POST_URL = `${BASE}/api/Geometry`;
+const GET_URL   = `${BASE}/api/Geometry`;
+const POST_URL  = `${BASE}/api/Geometry`;
 const BY_ID_URL = (id) => `${BASE}/api/Geometry/${id}`;
+const PAGED_URL = `${BASE}/api/Geometry/paged`; // ✅ yeni eklenen endpoint
 
 // 🔑 backend int bekliyor (1=Point, 2=LineString, 3=Polygon)
 const TYPE_MAP = { POINT: 1, LINESTRING: 2, POLYGON: 3 };
@@ -20,6 +21,17 @@ const TYPE_MAP = { POINT: 1, LINESTRING: 2, POLYGON: 3 };
 // GET → sadece data, toast yok
 export async function getAllGeometries() {
   const res = await fetch(GET_URL, { method: "GET" });
+  return jsonOrThrow(res, { showToast: false });
+}
+
+// GET (Paged) → sayfalama + arama
+export async function getPagedGeometries({ page = 1, pageSize = 10, search = "" }) {
+  const url = new URL(PAGED_URL);
+  url.searchParams.set("page", page);
+  url.searchParams.set("pageSize", pageSize);
+  if (search) url.searchParams.set("search", search);
+
+  const res = await fetch(url.toString(), { method: "GET" });
   return jsonOrThrow(res, { showToast: false });
 }
 

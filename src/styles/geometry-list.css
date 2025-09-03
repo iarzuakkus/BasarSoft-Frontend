@@ -1,13 +1,13 @@
 /* geometry-list.css */
 
-/* ==== modal alanı: 16:9 sabit boyut, ortalı ==== */
+/* ==== modal alanı: ortalı ==== */
 .list-modal {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 70%;              /* ekranın %70’i */
-  aspect-ratio: 16 / 9;    /* 16:9 oran */
+  width: 70%;
+  max-height: 80%;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0,0,0,.2);
@@ -17,11 +17,11 @@
   z-index: 2000;
 }
 
-/* başlık satırı: solda başlık, sağda çarpı */
+/* başlık satırı */
 .list-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;  /* 👈 başlık solda, çarpı sağda */
+  justify-content: space-between;
   margin-bottom: 6px;
 }
 
@@ -32,18 +32,12 @@
   cursor: pointer;
   font-size: 20px;
   line-height: 1;
-  color: #475569;      /* normalde gri */
+  color: #475569;
   padding: 2px 4px;
 }
-.close-btn:hover {
-  color: #ef4444;      /* sadece renk kırmızı olsun */
-}
+.close-btn:hover { color: #ef4444; }
 
-
-.list-title {
-  font-weight: 800;
-  font-size: 18px;
-}
+.list-title { font-weight: 800; font-size: 18px; }
 
 .list-scroll {
   flex: 1;
@@ -55,33 +49,21 @@
 }
 
 /* tablo */
-.geo-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
+.geo-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .geo-table th, .geo-table td {
   padding: 10px 12px;
   border-bottom: 1px solid #eef2f7;
   text-align: left;
 }
 .geo-table th {
-  position: sticky;
-  top: 0;
-  background: #f8fbff;
-  z-index: 1;
-  font-weight: 800;
+  position: sticky; top: 0; background: #f8fbff; z-index: 1; font-weight: 800;
 }
 .geo-table td.wkt {
   white-space: pre-wrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   color: #475569;
 }
-.geo-table td.muted, .muted {
-  color:#6b7280;
-  text-align:center;
-  padding: 24px 12px;
-}
+.geo-table td.muted, .muted { color:#6b7280; text-align:center; padding: 24px 12px; }
 
 /* ==== search input ==== */
 .geometry-search {
@@ -93,25 +75,61 @@
   font-size: 14px;
   outline: none;
 }
-.geometry-search:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 2px rgba(0,180,255,.2);
-}
+.geometry-search:focus { border-color: var(--violet); box-shadow: 0 0 0 2px rgba(190,0,255,.2); }
 
 /* ==== zoom buton ==== */
 .zoom-btn {
-  background: none;
-  border: none;
+  background: none; border: none; cursor: pointer; color: #2563eb;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px; border-radius: 6px; transition: background .12s, color .12s;
+}
+.zoom-btn:hover { background: #eff6ff; color: #1d4ed8; }
+
+/* ==== pagination alanı ==== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.page-btn {
+  background: none;   /* çerçeve ve arka plan yok */
+  border: none;       /* çerçeve kaldırıldı */
+  padding: 4px;
+  min-width: 28px;
+  min-height: 28px;
   cursor: pointer;
-  color: #2563eb;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  border-radius: 6px;
-  transition: background .12s, color .12s;
 }
-.zoom-btn:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
+
+/* Prev = turuncu ikon */
+.page-btn.prev img.arrow {
+  width: 16px;
+  height: 16px;
+  filter: invert(48%) sepia(98%) saturate(1700%) hue-rotate(360deg) brightness(96%) contrast(101%);
 }
+
+/* Next = yeşil ikon */
+.page-btn.next img.arrow {
+  width: 16px;
+  height: 16px;
+  filter: invert(63%) sepia(78%) saturate(387%) hue-rotate(92deg) brightness(91%) contrast(89%);
+}
+
+/* hover → arka plan yok, sadece ikon rengi kalsın */
+.page-btn.prev:hover:not(.disabled),
+.page-btn.next:hover:not(.disabled) {
+  background: none;
+}
+
+/* sağ yön için */
+.page-btn img.arrow.right { transform: rotate(180deg); }
+
+/* pasif buton */
+.page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+.page-btn.disabled img.arrow { opacity: 0.5; filter: none !important; }

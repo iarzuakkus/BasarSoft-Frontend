@@ -1,23 +1,52 @@
 // src/components/GeometryList.jsx
-import React, { useState } from "react";
-import EyeIcon from "./ui/EyeIcon.jsx";
+import React, { useState, useEffect, useCallback } from "react";
 import "../styles/geometry-list.css";
+import { getPagedGeometries } from "../api/geometryApi";
+import debounce from "lodash/debounce";
+import GeometryListTable from "./GeometryListTable.jsx"; // ✅ yeni component
 
-const TYPE_TEXT = (t) =>
-  typeof t === "number"
-    ? ({ 1: "Point", 2: "Linestring", 3: "Polygon" }[t] ?? String(t))
-    : (t || "");
+export default function GeometryList({ onZoom, onClose }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-export default function GeometryList({ items = [], loading, onZoom, onClose }) {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const filtered = items.filter((g) =>
-    g.name?.toLowerCase().includes(search.toLowerCase())
+  const debouncedSearch = useCallback(
+    debounce((val) => {
+      setPage(1);
+      loadData(1, val);
+    }, 500),
+    []
   );
+
+  const loadData = async (pageNum = 1, searchTerm = "") => {
+    setLoading(true);
+    try {
+      const res = await getPagedGeometries({ page: pageNum, pageSize: 10, search: searchTerm });
+      if (res.success) {
+        setItems(res.data.items);
+        setTotalPages(res.data.totalPages);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(page, search);
+  }, [page]);
+
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    setSearch(value);
+    debouncedSearch(value);
+  };
 
   return (
     <div className="list-modal">
-      {/* header: sol tarafta çarpı */}
+      {/* header */}
       <div className="list-header">
         <div className="list-title">Geometries</div>
         <button className="close-btn" onClick={onClose} title="Close">✕</button>
@@ -28,10 +57,11 @@ export default function GeometryList({ items = [], loading, onZoom, onClose }) {
         type="text"
         placeholder="Search by name..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={handleSearch}
         className="geometry-search"
       />
 
+      {/* ✅ sadece tablo ayrı component */}
       <div className="list-scroll">
         <table className="geo-table">
           <thead>
@@ -43,38 +73,29 @@ export default function GeometryList({ items = [], loading, onZoom, onClose }) {
               <th style={{ width: 50 }}></th>
             </tr>
           </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={5} className="muted">Loading…</td>
-              </tr>
-            )}
-
-            {!loading && filtered.length === 0 && (
-              <tr>
-                <td colSpan={5} className="muted">No data</td>
-              </tr>
-            )}
-
-            {!loading && filtered.map((g) => (
-              <tr key={g.id ?? `${g.name}-${Math.random()}`}>
-                <td>{g.id ?? "-"}</td>
-                <td>{g.name ?? "-"}</td>
-                <td>{TYPE_TEXT(g.type)}</td>
-                <td className="wkt">{g.wkt}</td>
-                <td>
-                  <button
-                    className="zoom-btn"
-                    onClick={() => { onZoom?.(g); onClose?.(); }}  // zoom + kapat
-                    title="Zoom to geometry"
-                  >
-                    <EyeIcon size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          <GeometryListTable items={items} loading={loading} onZoom={onZoom} onClose={onClose} />
         </table>
+      </div>
+
+      {/* pagination */}
+      <div className="pagination">
+        <button
+          className={`page-btn prev ${page <= 1 ? "disabled" : ""}`}
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
+          <img src="/src/assets/icons/Ok.svg" alt="Prev" className="arrow left" />
+        </button>
+
+        <span className="page-info">Page {page} / {totalPages}</span>
+
+        <button
+          className={`page-btn next ${page >= totalPages ? "disabled" : ""}`}
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+        >
+          <img src="/src/assets/icons/Ok.svg" alt="Next" className="arrow right" />
+        </button>
       </div>
     </div>
   );
