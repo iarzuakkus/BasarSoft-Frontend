@@ -1,22 +1,109 @@
-.row{ display:grid; gap:8px; margin:12px 0; }
-.row label{ font-weight:800; font-size:14px; color:#374151; }
+/* Ortak satır stilleri */
+.row {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.row label {
+  font-weight: 800;
+  font-size: 14px;
+  color: #374151;
+}
 
 .row input,
-.row textarea{
-  height:42px;
-  padding:10px 12px;
-  border-radius:12px;
-  border:1px solid #dbe6f0;
-  outline:none;
-  background:#fff;
-  color:#111;
-  transition: box-shadow .12s, border-color .12s;
+.row textarea {
+  height: 42px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #dbe6f0;
+  outline: none;
+  background: #fff;
+  color: #111;
+  transition: box-shadow 0.12s, border-color 0.12s;
 }
-.row textarea{ min-height:96px; resize: vertical; }
+.row textarea {
+  min-height: 96px;
+  resize: vertical;
+}
 .row input::placeholder,
-.row textarea::placeholder{ color:#9aa3ad; font-weight:600; letter-spacing:.2px; }
-.row input:focus,
-.row textarea:focus{
-  border-color:#60a5fa;
-  box-shadow:0 0 0 4px var(--ring);
+.row textarea::placeholder {
+  color: #9aa3ad;
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
+.row input:focus,
+.row textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+/* Kind seçim butonları */
+.kind-options {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.kind-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  color: inherit;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+/* Renkler */
+.kind-btn.orange {
+  border-color: #ff8f4c;
+  color: #ff8f4c;
+}
+.kind-btn.blue {
+  border-color: #25c4dd;
+  color: #25c4dd;
+}
+.kind-btn.purple {
+  border-color: #9b5de5;
+  color: #9b5de5;
+}
+
+/* Aktif buton (seçili) → pastel dolgu, yazı rengi değişmez */
+.kind-btn.active.orange {
+  background: rgba(255, 143, 76, 0.2); /* pastel turuncu */
+  color: #ff8f4c;                      /* yazı kendi rengi */
+  box-shadow: 0 0 4px rgba(255, 143, 76, 0.3), 0 0 8px rgba(255, 143, 76, 0.2);
+}
+
+.kind-btn.active.blue {
+  background: rgba(72, 207, 228, 0.2); /* pastel mavi */
+  color: #25c4dd;                      /* yazı kendi rengi */
+  box-shadow: 0 0 4px rgba(37, 196, 221, 0.3), 0 0 8px rgba(37, 196, 221, 0.2);
+}
+
+.kind-btn.active.purple {
+  background: rgba(155, 93, 229, 0.2); /* pastel mor */
+  color: #9b5de5;                      /* yazı kendi rengi */
+  box-shadow: 0 0 4px rgba(155, 93, 229, 0.3), 0 0 8px rgba(155, 93, 229, 0.2);
+}
+
+
+/* Pasif buton (disabled) */
+.kind-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: #ccc !important;
+  color: #ccc !important;
+  background: #f9f9f9 !important;
+  box-shadow: none !important;
+}
+
+

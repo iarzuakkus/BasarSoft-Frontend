@@ -11,6 +11,7 @@ import { Vector as VectorLayer } from "ol/layer";
 import Feature from "ol/Feature";
 import { WKT } from "ol/format";
 import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
+import { getDistance } from "ol/sphere"; // 🔹 mesafe ölçümü için
 
 const defaultStyle = new Style({
   stroke: new Stroke({ color: "#2979ff", width: 2 }),
@@ -26,24 +27,25 @@ export function useGeometries() {
   const [error, setError] = useState("");
 
   const format = new WKT();
+  const RADIUS = 500; // metre
 
   // === Yardımcı: Feature oluştur ===
   const makeFeature = (item) => {
-    const geom = format.readGeometry(item.wkt);
-    geom.transform("EPSG:4326", "EPSG:3857");
-
+    const geom = format.readGeometry(item.wkt); // ✅ sadece 4326
     const feat = new Feature({
       geometry: geom,
       name: item.name,
       type: item.type,
       wkt: item.wkt,
+      kind: item.kind,
     });
 
-    feat.setId(item.id); // 🔑 OL feature id
+    feat.setId(item.id);
     feat.set("id", item.id);
     feat.set("name", item.name);
     feat.set("type", item.type);
     feat.set("wkt", item.wkt);
+    feat.set("kind", item.kind);
 
     return feat;
   };
@@ -54,7 +56,7 @@ export function useGeometries() {
     setError("");
 
     try {
-      const response = await getAllGeometries(); // { success, message, data }
+      const response = await getAllGeometries();
       const valid = Array.isArray(response?.data) ? response.data : [];
       setItems(valid);
 
@@ -106,21 +108,19 @@ export function useGeometries() {
       if (response?.success && response.data) {
         const updated = response.data;
 
-        // items state güncelle
         setItems((prev) =>
           prev.map((item) => (item.id === id ? updated : item))
         );
 
-        // layer'daki feature güncelle
         if (layer) {
           const feature = layer.getSource().getFeatureById(id);
           if (feature) {
             const geom = format.readGeometry(updated.wkt);
-            geom.transform("EPSG:4326", "EPSG:3857");
             feature.setGeometry(geom);
             feature.set("name", updated.name);
             feature.set("type", updated.type);
             feature.set("wkt", updated.wkt);
+            feature.set("kind", updated.kind);
           }
         }
       }
@@ -139,10 +139,8 @@ export function useGeometries() {
     try {
       const response = await deleteGeometry(id);
       if (response?.success) {
-        // items state güncelle
         setItems((prev) => prev.filter((item) => item.id !== id));
 
-        // layer'dan sil
         if (layer) {
           const feature = layer.getSource().getFeatureById(id);
           if (feature) {
@@ -158,9 +156,44 @@ export function useGeometries() {
     }
   }, [layer]);
 
+  // === 500m içinde hangi kind’ler seçilebilir? ===
+  const getAllowedKinds = useCallback((newWkt, newType) => {
+    try {
+      const newGeom = format.readGeometry(newWkt);
+
+      // sadece Point eklenirken kontrol yapılacak
+      if (newType === "POINT") {
+        let matchedKind = null;
+
+        items.forEach((item) => {
+          if (!item.wkt || !item.kind) return;
+          if (item.type !== 2) return; // sadece LineString’lere bak
+
+          const geom = format.readGeometry(item.wkt);
+          const coords = geom.getCoordinates();
+          const start = coords[0];
+          const end = coords[coords.length - 1];
+
+          const distStart = getDistance(newGeom.getCoordinates(), start);
+          const distEnd = getDistance(newGeom.getCoordinates(), end);
+
+          if (distStart <= RADIUS || distEnd <= RADIUS) {
+            matchedKind = item.kind;
+          }
+        });
+
+        return matchedKind ? [matchedKind] : ["A", "B", "C"];
+      }
+
+      return ["A", "B", "C"];
+    } catch {
+      return ["A", "B", "C"];
+    }
+  }, [items]);
+
   useEffect(() => {
     load();
   }, [load]);
 
-  return { items, layer, loading, saving, error, setError, load, add, update, remove };
+  return { items, layer, loading, saving, error, setError, load, add, update, remove, getAllowedKinds };
 }

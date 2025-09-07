@@ -41,11 +41,12 @@ export async function getGeometryById(id) {
 }
 
 // POST → kayıt oluşturur, toast çıkar
-export async function createGeometry({ name, type, wkt }) {
+export async function createGeometry({ name, type, wkt, kind }) {
   const payload = { 
     name, 
     type: typeof type === "string" ? TYPE_MAP[type.toUpperCase()] ?? 0 : type, 
-    wkt 
+    wkt,
+    kind // 🔹 yeni eklendi
   };
 
   console.log("createGeometry payload:", payload);
@@ -55,16 +56,17 @@ export async function createGeometry({ name, type, wkt }) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  return jsonOrThrow(res); // ✅ toast çıkar
+  return jsonOrThrow(res);
 }
 
 // PUT → güncelleme yapar, toast çıkar
-export async function updateGeometry(id, { name, type, wkt }) {
+export async function updateGeometry(id, { name, type, wkt, kind }) {
   const payload = { 
     id, 
     name, 
     type: typeof type === "string" ? TYPE_MAP[type.toUpperCase()] ?? 0 : type, 
-    wkt 
+    wkt,
+    kind // 🔹 yeni eklendi
   };
 
   console.log("updateGeometry payload:", payload);

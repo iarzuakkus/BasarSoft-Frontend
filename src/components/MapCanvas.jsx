@@ -29,7 +29,8 @@ export default function MapCanvas({
   onGetAll,
   onOpenList,
   onSketchWkt,
-  onFinishSketch
+  onFinishSketch,
+  getAllowedKinds,
 }) {
   const slotRef = useRef(null);
   const mapRef = useRef(null);
@@ -61,6 +62,8 @@ export default function MapCanvas({
   const TR_BBOX_4326 = [25, 35.6, 45, 42.4];
   const typeMap = { 1: "POINT", 2: "LINESTRING", 3: "POLYGON" };
 
+  const [status, setStatus] = useState(""); // kind: A / B / C
+
   // === MAP INIT ===
   useEffect(() => {
     const map = new Map({
@@ -69,15 +72,15 @@ export default function MapCanvas({
         new TileLayer({ source: new OSM() }),
         dataLayerRef.current,
         sketchLayerRef.current,
-        highlightLayerRef.current
+        highlightLayerRef.current,
       ],
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: new View({
         center: fromLonLat([35.2433, 38.9637]),
         zoom: 6,
         minZoom: 2,
-        maxZoom: 18
-      })
+        maxZoom: 18,
+      }),
     });
     mapRef.current = map;
 
@@ -102,6 +105,7 @@ export default function MapCanvas({
     setCanSave(false);
     setHistory([]);
     setMode("cursor");
+    setStatus("");
     onFinishSketch?.();
   };
 
@@ -109,8 +113,6 @@ export default function MapCanvas({
   useEffect(() => {
     if (Array.isArray(itemsProp)) {
       setItems(itemsProp);
-
-      // yeni item eklendiğinde sketch temizle
       if (itemsProp.length > items.length) {
         clearSketch();
       }
@@ -132,7 +134,7 @@ export default function MapCanvas({
           return selectedShapes.includes(t);
         });
       } else {
-        displayItems = items; // 👈 tüm item'ları göster
+        displayItems = items;
       }
 
       const feats = displayItems
@@ -146,6 +148,7 @@ export default function MapCanvas({
           f.set && f.set("itemId", g.id);
           f.set && f.set("itemName", g.name);
           f.set && f.set("itemType", g.type);
+          f.set && f.set("itemKind", g.kind);
           return f;
         })
         .filter(Boolean);
@@ -158,7 +161,7 @@ export default function MapCanvas({
           map.getView().fit(extent, {
             padding: [32, 32, 32, 32],
             maxZoom: 12,
-            duration: 300
+            duration: 300,
           });
         }
       }
@@ -174,6 +177,7 @@ export default function MapCanvas({
     setCanSave(false);
     setHistory([]);
     setSelectedItem(null);
+    setStatus("");
   };
 
   const handleToggleMode = (newMode) => {
@@ -187,14 +191,33 @@ export default function MapCanvas({
     }
   };
 
+  // ✅ WKT + kind koruma
   const handleSketchWkt = (wkt) => {
     setCurrentSketchWkt(wkt);
-    onSketchWkt?.(wkt);
+
+    let allowed = [];
+    try {
+      allowed = getAllowedKinds(wkt, type);
+    } catch {
+      allowed = ["A", "B", "C"];
+    }
+
+    let newStatus = status || selectedItem?.kind || "";
+    if (!allowed.includes(newStatus)) {
+      newStatus = allowed.length === 1 ? allowed[0] : "";
+    }
+
+    setStatus(newStatus);
+
+    onSketchWkt?.({ wkt, status: newStatus });
 
     if (mode === "move-shape" || mode === "move-vertex") {
       setHistory((prev) => [...prev, currentSketchWkt]);
       setCanSave(true);
-      setSelectedItem((prev) => (prev ? { ...prev, wkt } : prev));
+      setSelectedItem((prev) => {
+        const prevKind = prev?.kind || status || newStatus;
+        return prev ? { ...prev, wkt, kind: prevKind } : { wkt, kind: prevKind };
+      });
     }
   };
 
@@ -203,10 +226,14 @@ export default function MapCanvas({
 
     try {
       const payload = {
+        id: selectedItem.id,
         name: selectedItem.name,
         type: selectedItem.type,
-        wkt: currentSketchWkt
+        wkt: currentSketchWkt,
+        kind: status || selectedItem.kind || "A", // ✅ fallback ile garanti
       };
+
+      console.log("updateGeometry payload:", payload);
 
       const response = await updateGeometry(selectedItem.id, payload);
 
@@ -227,7 +254,7 @@ export default function MapCanvas({
         setHistory([]);
         setMode("cursor");
 
-        clearSketch(); // ✅ update sonrası sketch temizle
+        clearSketch();
       }
     } catch (err) {
       console.error("Save error:", err);
@@ -249,7 +276,7 @@ export default function MapCanvas({
       const fmt = new WKT();
       return fmt.writeFeature(feat, {
         dataProjection: "EPSG:4326",
-        featureProjection: map.getView().getProjection()
+        featureProjection: map.getView().getProjection(),
       });
     };
 
@@ -265,7 +292,7 @@ export default function MapCanvas({
 
     if (mode === "move-shape") {
       const translate = new Translate({
-        features: dataLayerRef.current.getSource().getFeaturesCollection()
+        features: dataLayerRef.current.getSource().getFeaturesCollection(),
       });
       map.addInteraction(translate);
 
@@ -275,7 +302,7 @@ export default function MapCanvas({
         const newWkt = writeWkt(feat);
         const item = getItemFromFeature(feat);
         if (item) {
-          setSelectedItem({ ...item, wkt: newWkt });
+          setSelectedItem({ ...item, wkt: newWkt, kind: item.kind || status });
         }
         handleSketchWkt(newWkt);
       });
@@ -283,7 +310,7 @@ export default function MapCanvas({
 
     if (mode === "move-vertex") {
       const modify = new Modify({
-        source: dataLayerRef.current.getSource()
+        source: dataLayerRef.current.getSource(),
       });
       map.addInteraction(modify);
 
@@ -293,7 +320,7 @@ export default function MapCanvas({
         const newWkt = writeWkt(feat);
         const item = getItemFromFeature(feat);
         if (item) {
-          setSelectedItem({ ...item, wkt: newWkt });
+          setSelectedItem({ ...item, wkt: newWkt, kind: item.kind || status });
         }
         handleSketchWkt(newWkt);
       });
@@ -313,7 +340,7 @@ export default function MapCanvas({
     try {
       const feature = format.readFeature(geom.wkt, {
         dataProjection: "EPSG:4326",
-        featureProjection: map.getView().getProjection()
+        featureProjection: map.getView().getProjection(),
       });
       const extent = feature.getGeometry().getExtent();
       map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 800 });

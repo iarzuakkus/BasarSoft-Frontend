@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useEffect, useState } from "react";
 import { useGeometries } from "./hooks/useGeometries.js";
 
@@ -21,7 +22,8 @@ function AppInner() {
   const [openList, setOpenList] = useState(false);
   const [sketchWkt, setSketchWkt] = useState("");
 
-  const { items, loading, saving, load, add } = useGeometries();
+  // 🔹 getAllowedKinds eklendi
+  const { items, loading, saving, load, add, getAllowedKinds } = useGeometries();
 
   const handleCreate = async (dto) => {
     const ok = await add(dto);
@@ -84,7 +86,22 @@ function AppInner() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <GeometryForm
               type={type}
-              initialWkt={sketchWkt}
+              // 🔹 hem wkt hem status(kind) normalize edildi
+              initialWkt={{
+                wkt:
+                  typeof sketchWkt === "object"
+                    ? sketchWkt.wkt || ""
+                    : sketchWkt || "",
+                status:
+                  typeof sketchWkt === "object"
+                    ? sketchWkt.status || sketchWkt.kind || ""
+                    : "",
+              }}
+              // 🔹 Allowed kinds backend + mesafe kontrolünden
+              allowedKinds={getAllowedKinds(
+                typeof sketchWkt === "object" ? sketchWkt.wkt : sketchWkt,
+                type
+              )}
               onSubmit={handleCreate}
               saving={saving}
             />
